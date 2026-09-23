@@ -1,0 +1,1 @@
+var Shopify=Shopify||{};Shopify.PaymentButton=Shopify.PaymentButton||{isStorefrontPortableWallets:!0,init:function(){window.Shopify.PaymentButton.init=function(){};var t=document.createElement("script");t.src="https://ec.tiendasishop.com/cdn/shopifycloud/portable-wallets/latest/portable-wallets.es.js",t.type="module",document.head.appendChild(t)}};

@@ -1,0 +1,6 @@
+window.Shopify = window.Shopify || {};
+      window.Shopify.MCP = window.Shopify.MCP || {};
+      window.Shopify.MCP.enabled = true;
+      window.Shopify.MCP.shop = "ishop-ecuador.myshopify.com";
+      window.Shopify.MCP.mcpEndpoint = "https:\/\/ec.tiendasishop.com\/api\/mcp";
+      window.Shopify.MCP.tools = [{"name":"search_shop_policies_and_faqs","description":"Used to get facts about the stores policies, products, or services.\nSome examples of questions you can ask are:\n  - What is your return policy?\n  - What is your shipping policy?\n  - What is your phone number?\n  - What are your hours of operation?\"\n","inputSchema":{"$schema":"https:\/\/json-schema.org\/draft\/2020-12\/schema","type":"object","properties":{"query":{"type":"string","description":"A natural language query."},"context":{"type":"string","description":"Additional information about the request such as user demographics, mood, location, or other relevant details that could help in tailoring the response appropriately."}},"required":["query"]}}];

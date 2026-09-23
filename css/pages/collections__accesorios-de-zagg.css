@@ -1,0 +1,282 @@
+@font-face {
+  font-family: Roboto;
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("//ec.tiendasishop.com/cdn/fonts/roboto/roboto_n4.2019d890f07b1852f56ce63ba45b2db45d852cba.woff2") format("woff2"),
+       url("//ec.tiendasishop.com/cdn/fonts/roboto/roboto_n4.238690e0007583582327135619c5f7971652fa9d.woff") format("woff");
+}
+@font-face {
+  font-family: Roboto;
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("//ec.tiendasishop.com/cdn/fonts/roboto/roboto_n7.f38007a10afbbde8976c4056bfe890710d51dec2.woff2") format("woff2"),
+       url("//ec.tiendasishop.com/cdn/fonts/roboto/roboto_n7.94bfdd3e80c7be00e128703d245c207769d763f9.woff") format("woff");
+}
+@font-face {
+  font-family: Roboto;
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+  src: url("//ec.tiendasishop.com/cdn/fonts/roboto/roboto_i4.57ce898ccda22ee84f49e6b57ae302250655e2d4.woff2") format("woff2"),
+       url("//ec.tiendasishop.com/cdn/fonts/roboto/roboto_i4.b21f3bd061cbcb83b824ae8c7671a82587b264bf.woff") format("woff");
+}
+@font-face {
+  font-family: Roboto;
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+  src: url("//ec.tiendasishop.com/cdn/fonts/roboto/roboto_i7.7ccaf9410746f2c53340607c42c43f90a9005937.woff2") format("woff2"),
+       url("//ec.tiendasishop.com/cdn/fonts/roboto/roboto_i7.49ec21cdd7148292bffea74c62c0df6e93551516.woff") format("woff");
+}
+@font-face {
+  font-family: Roboto;
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("//ec.tiendasishop.com/cdn/fonts/roboto/roboto_n7.f38007a10afbbde8976c4056bfe890710d51dec2.woff2") format("woff2"),
+       url("//ec.tiendasishop.com/cdn/fonts/roboto/roboto_n7.94bfdd3e80c7be00e128703d245c207769d763f9.woff") format("woff");
+}
+@font-face {
+  font-family: Roboto;
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("//ec.tiendasishop.com/cdn/fonts/roboto/roboto_n7.f38007a10afbbde8976c4056bfe890710d51dec2.woff2") format("woff2"),
+       url("//ec.tiendasishop.com/cdn/fonts/roboto/roboto_n7.94bfdd3e80c7be00e128703d245c207769d763f9.woff") format("woff");
+}
+:root {
+      --bg-color: 255 255 255 / 1.0;
+      --bg-color-og: 255 255 255 / 1.0;
+      --heading-color: 50 50 50;
+      --text-color: 69 90 100;
+      --text-color-og: 69 90 100;
+      --scrollbar-color: 69 90 100;
+      --link-color: 0 0 0;
+      --link-color-og: 0 0 0;
+      --star-color: 246 128 37;
+      --system-font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";--swatch-border-color-default: 218 222 224;
+        --swatch-border-color-active: 162 173 178;
+        --swatch-card-size: 24px;
+        --swatch-variant-picker-size: 40px;--color-scheme-1-bg: 255 255 255 / 1.0;
+      --color-scheme-1-grad: linear-gradient(180deg, rgba(NaN, NaN, NaN, 1), rgba(244, 244, 244, 1) 100%);
+      --color-scheme-1-heading: 42 43 42;
+      --color-scheme-1-text: 42 43 42;
+      --color-scheme-1-btn-bg: 255 88 13;
+      --color-scheme-1-btn-text: 255 255 255;
+      --color-scheme-1-btn-bg-hover: 255 124 64;--color-scheme-2-bg: 246 128 37 / 1.0;
+      --color-scheme-2-grad: ;
+      --color-scheme-2-heading: 42 43 42;
+      --color-scheme-2-text: 255 255 255;
+      --color-scheme-2-btn-bg: 255 255 255;
+      --color-scheme-2-btn-text: 42 43 42;
+      --color-scheme-2-btn-bg-hover: 231 231 231;--color-scheme-3-bg: 255 88 13 / 1.0;
+      --color-scheme-3-grad: linear-gradient(46deg, rgba(234, 73, 0, 1) 8%, rgba(234, 73, 0, 1) 32%, rgba(255, 88, 13, 0.88) 92%);
+      --color-scheme-3-heading: 255 255 255;
+      --color-scheme-3-text: 255 255 255;
+      --color-scheme-3-btn-bg: 42 43 42;
+      --color-scheme-3-btn-text: 255 255 255;
+      --color-scheme-3-btn-bg-hover: 82 83 82;
+
+      --drawer-bg-color: 255 255 255 / 1.0;
+      --drawer-text-color: 42 43 42;
+
+      --panel-bg-color: 244 244 244 / 1.0;
+      --panel-heading-color: 42 43 42;
+      --panel-text-color: 42 43 42;
+
+      --in-stock-text-color: 44 126 63;
+      --low-stock-text-color: 210 134 26;
+      --very-low-stock-text-color: 180 12 28;
+      --no-stock-text-color: 119 119 119;
+      --no-stock-backordered-text-color: 119 119 119;
+
+      --error-bg-color: 252 237 238;
+      --error-text-color: 180 12 28;
+      --success-bg-color: 232 246 234;
+      --success-text-color: 44 126 63;
+      --info-bg-color: 228 237 250;
+      --info-text-color: 26 102 210;
+
+      --heading-font-family: var(--system-font-stack);
+      --heading-font-style: normal;
+      --heading-font-weight: 700;
+      --heading-scale-start: 4;
+
+      --navigation-font-family: var(--system-font-stack);
+      --navigation-font-style: normal;
+      --navigation-font-weight: 700;--heading-text-transform: none;
+--subheading-text-transform: none;
+      --body-font-family: var(--system-font-stack);
+      --body-font-style: normal;
+      --body-font-weight: 400;
+      --body-font-size: 16;
+
+      --section-gap: 48;
+      --heading-gap: calc(8 * var(--space-unit));--grid-column-gap: 20px;--btn-bg-color: 246 128 37;
+      --btn-bg-hover-color: 248 156 85;
+      --btn-text-color: 255 255 255;
+      --btn-bg-color-og: 246 128 37;
+      --btn-text-color-og: 255 255 255;
+      --btn-alt-bg-color: 128 128 129;
+      --btn-alt-bg-alpha: 1.0;
+      --btn-alt-text-color: 255 255 255;
+      --btn-border-width: 2px;
+      --btn-padding-y: 12px;
+
+      
+      --btn-border-radius: 28px;
+      
+
+      --btn-lg-border-radius: 50%;
+      --btn-icon-border-radius: 50%;
+      --input-with-btn-inner-radius: var(--btn-border-radius);
+
+      --input-bg-color: 255 255 255 / 1.0;
+      --input-text-color: 69 90 100;
+      --input-border-width: 2px;
+      --input-border-radius: 26px;
+      --textarea-border-radius: 12px;
+      --input-border-radius: 28px;
+      --input-lg-border-radius: 34px;
+      --input-bg-color-diff-3: #f7f7f7;
+      --input-bg-color-diff-6: #f0f0f0;
+
+      --modal-border-radius: 16px;
+      --modal-overlay-color: 0 0 0;
+      --modal-overlay-opacity: 0.4;
+      --drawer-border-radius: 16px;
+      --overlay-border-radius: 0px;
+
+      --custom-label-bg-color: 13 44 84;
+      --custom-label-text-color: 255 255 255;--sale-label-bg-color: 246 128 37;
+      --sale-label-text-color: 255 255 255;--sold-out-label-bg-color: 42 43 42;
+      --sold-out-label-text-color: 255 255 255;--new-label-bg-color: 1 113 226;
+      --new-label-text-color: 255 255 255;--preorder-label-bg-color: 1 113 226;
+      --preorder-label-text-color: 255 255 255;
+
+      --collection-label-color: 0 126 18;
+
+      --page-width: 1200px;
+      --gutter-sm: 20px;
+      --gutter-md: 32px;
+      --gutter-lg: 64px;
+
+      --payment-terms-bg-color: #ffffff;
+
+      --coll-card-bg-color: #F9F9F9;
+      --coll-card-border-color: #f2f2f2;
+
+      --card-highlight-bg-color: #F9F9F9;
+      --card-highlight-text-color: 85 85 85;
+      --card-highlight-border-color: #E1E1E1;
+
+      --reading-width: 48em;
+    }
+
+    @media (max-width: 769px) {
+      :root {
+        --reading-width: 36em;
+      }
+    }
+
+.announcement {
+      --announcement-text-color: 255 255 255;
+      background-color: #f68025;
+    }
+
+.header {
+  --bg-color: 255 255 255 / 1.0;
+  --text-color: 7 7 7;
+  --nav-bg-color: 255 255 255;
+  --nav-text-color: 7 7 7;
+  --nav-child-bg-color:  255 255 255;
+  --nav-child-text-color: 7 7 7;
+  --header-accent-color: 119 119 119;
+  --search-bg-color: #e6e6e6;
+  
+  
+  }
+
+.country-dropdown {
+    position: relative;
+    display: inline-block;
+    margin:0px 10px;
+    padding:3px;
+}
+/* Dropdown button styling */
+.dropdown-button {
+    background-color: white;
+    color: #454545;
+    padding: 5px 0px;
+    font-size: 16px;
+    border-width:0px;
+    cursor: pointer;
+    display: flex;
+    justify-content: left;
+}
+/* Dropdown content hidden by default */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: white;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+    left: -12px;
+}
+/* Dropdown content links */
+.dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: flex;
+    justify-content: left;
+}
+/* Show the dropdown content on hover */
+.country-dropdown:hover .dropdown-content {
+    display: block;
+}
+/* Change color of dropdown links on hover */
+.dropdown-content a:hover {
+    background-color: #ddd;
+}
+
+/* Media query for screens below 1000px */
+@media screen and (max-width: 1000px) {
+    .dropdown-button::after {
+        content: "EC";
+        font-size:12px;
+        padding-top:5px;
+    }
+    .dropdown-button span {
+        display: none;
+    }
+    .country-dropdown{
+          margin:0px;
+    }
+    .dropdown-content a {
+    padding: 10px 7px;
+    }
+    .dropdown-content {
+    min-width: 130px;
+    left: -4px;
+    }
+}
+
+.cart-drawer__view-cart.link,
+  .cart-drawer__view-cart.link:hover,
+  .cart-drawer__view-cart.link:focus {
+    color: #0071e3;
+  }
+
+.footer {
+    --bg-color: 255 255 255 / 1.0;
+    --heading-color: 7 7 7;
+    --text-color: 7 7 7;
+  }
+
+#shopify-section-sections--22057212477634__footer .footer-col.footer-col--links.footer-col--collapsed {max-width: 100%;}
+
+.search__input {background-color: #f8f8f8;} .search__input::placeholder {color: black;} .custom-select__btn {background-color: #f8f8f8 !important;}  /* menu */.main-nav__item.main-nav__item--primary.main-nav__item-content {color: #323232;} .main-nav__item.child-nav__item {color: #323232;}  /* quitar flechas hacia abajo en los títulos en el menú */.main-nav__item--toggle .icon {display: none;} .product-label {font-weight: bold;}  /* colores para los botones */.footer {padding-bottom: 0px;}  /* quitar espacio footer */.slider__item {padding-top: 22px;} @media (max-width: 768px) {.product-label--custom {padding: 2px 4px !important; }} .slider__item {padding-top: 22px;} @media (max-width: 768px) {.product-label--custom {padding: 2px 4px !important; }} .carousel .product-metafield-multiline {display: none;}

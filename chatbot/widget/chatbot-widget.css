@@ -1,0 +1,48 @@
+:root {
+  --chat--color-primary: #171717;
+  --chat--color-primary-shade-50: #303030;
+  --chat--color-primary-shade-100: #474747;
+  --chat--color-secondary: #e84b35;
+  --chat--color-secondary-shade-50: #cc3d2b;
+  --chat--color-white: #ffffff;
+  --chat--color-light: #f5f5f7;
+  --chat--color-light-shade-50: #e9e9ed;
+  --chat--color-light-shade-100: #d2d2d7;
+  --chat--color-medium: #9a9aa1;
+  --chat--color-dark: #1d1d1f;
+  --chat--color-disabled: #b7b7bd;
+  --chat--color-typing: #55555b;
+  --chat--spacing: 1rem;
+  --chat--border-radius: 14px;
+  --chat--transition-duration: 0.2s;
+  --chat--window--width: 390px;
+  --chat--window--height: 620px;
+  --chat--header-height: auto;
+  --chat--header--padding: 1.15rem;
+  --chat--header--background: #171717;
+  --chat--header--color: #ffffff;
+  --chat--heading--font-size: 1.35rem;
+  --chat--subtitle--font-size: 0.9rem;
+  --chat--message--font-size: 0.95rem;
+  --chat--message--bot--background: #f5f5f7;
+  --chat--message--bot--color: #1d1d1f;
+  --chat--message--user--background: #171717;
+  --chat--message--user--color: #ffffff;
+  --chat--toggle--background: #171717;
+  --chat--toggle--hover--background: #303030;
+  --chat--toggle--active--background: #474747;
+  --chat--toggle--color: #ffffff;
+  --chat--toggle--size: 58px;
+}
+
+.chat-window-wrapper,
+.chat-window {
+  z-index: 1000000 !important;
+}
+
+@media (max-width: 480px) {
+  :root {
+    --chat--window--width: calc(100vw - 20px);
+    --chat--window--height: calc(100vh - 90px);
+  }
+}

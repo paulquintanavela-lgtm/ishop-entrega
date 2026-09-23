@@ -1,0 +1,15 @@
+var Shopify = Shopify || {};
+    Shopify.shop = "ishop-ecuador.myshopify.com";
+    Shopify.locale = "es";
+    Shopify.currency = {"active":"USD","rate":"1.0"};
+    Shopify.country = "EC";
+    Shopify.theme = {"name":"shopify-theme-ec\/production","id":156106260674,"schema_name":"Enterprise","schema_version":"1.6.2","theme_store_id":null,"role":"main"};
+    Shopify.theme.handle = "null";
+    Shopify.theme.style = {"id":null,"handle":null};
+    Shopify.cdnHost = "ec.tiendasishop.com/cdn";
+    Shopify.routes = Shopify.routes || {};
+    Shopify.routes.root = "/";
+    Shopify.shopJsCdnBaseUrl = "https://cdn.shopify.com/shopifycloud/shop-js";
+    Shopify.SignInWithShop = Shopify.SignInWithShop || {};
+    Shopify.SignInWithShop.User = Shopify.SignInWithShop.User || {};
+    Shopify.SignInWithShop.User.recognized = false;

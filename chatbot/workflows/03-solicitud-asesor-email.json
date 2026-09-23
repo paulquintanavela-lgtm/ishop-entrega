@@ -1,0 +1,89 @@
+{
+  "name": "iShop 03 - Solicitud para asesor por email",
+  "nodes": [
+    {
+      "id": "90f1475f-f042-467a-8dcb-6bf5e3fa9f15",
+      "name": "CONFIGURAR CORREO",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [100, -180],
+      "parameters": {
+        "width": 820,
+        "height": 220,
+        "content": "## Derivación opcional por correo\n\n1. Crea una credencial SMTP con tu correo personal. Para Gmail se recomienda una contraseña de aplicación.\n2. Reemplaza `TU_CORREO_PERSONAL` en el nodo Enviar al asesor.\n3. Activa el workflow y utiliza la URL de producción del formulario.\n\nEste flujo es opcional: el chatbot funciona sin correo."
+      }
+    },
+    {
+      "id": "5779bc6b-0535-4f69-b52b-e16a9675eb1f",
+      "name": "Formulario para asesor",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [160, 160],
+      "webhookId": "77747fc2-faa1-4ce6-ae87-b8cb94bd05ca",
+      "parameters": {
+        "formTitle": "Contactar a un asesor de iShop",
+        "formDescription": "Deja tus datos y un asesor revisará tu consulta.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Nombre",
+              "placeholder": "Tu nombre",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "placeholder": "tu@email.com",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Consulta",
+              "fieldType": "textarea",
+              "placeholder": "Describe brevemente tu consulta",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "respondWithText": "Gracias. Tu solicitud fue enviada al asesor."
+        }
+      }
+    },
+    {
+      "id": "e06b19de-38be-4d6f-ab54-77e965b8f61d",
+      "name": "Enviar al asesor",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [480, 160],
+      "parameters": {
+        "fromEmail": "Chatbot iShop <TU_CORREO_PERSONAL>",
+        "toEmail": "TU_CORREO_PERSONAL",
+        "subject": "=Solicitud del chatbot iShop - {{ $json.Nombre }}",
+        "emailFormat": "text",
+        "text": "=Nueva solicitud recibida desde el chatbot de demostración.\n\nNombre: {{ $json.Nombre }}\nEmail del cliente: {{ $json.Email }}\n\nConsulta:\n{{ $json.Consulta }}",
+        "options": {
+          "appendAttribution": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Formulario para asesor": {
+      "main": [
+        [
+          {
+            "node": "Enviar al asesor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "versionId": "c103906e-550a-4c8c-93f6-101451ae43f8"
+}
