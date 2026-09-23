@@ -15,6 +15,7 @@ from urllib.parse import urljoin, urlparse
 ROOT = Path(__file__).resolve().parent
 ORIGIN = "https://ec.tiendasishop.com"
 LOCAL_NAV_SRC = "/js/local-nav.js?v=20260923-9"
+CHATBOT_WIDGET_SRC = "/chatbot/widget/chatbot-widget.js?v=20260923-2"
 UA = {
     "User-Agent": (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -176,9 +177,14 @@ def inject_local_nav(html: str) -> str:
 
 
 def inject_chatbot_widget(html: str) -> str:
-    tag = '<script type="module" src="/chatbot/widget/chatbot-widget.js"></script>'
-    if "chatbot/widget/chatbot-widget.js" in html:
-        return html
+    tag = f'<script type="module" src="{CHATBOT_WIDGET_SRC}"></script>'
+    existing = re.compile(
+        r'<script\s+type="module"\s+src="/chatbot/widget/chatbot-widget\.js'
+        r'(?:\?[^"]*)?"\s*></script>',
+        flags=re.I,
+    )
+    if existing.search(html):
+        return existing.sub(tag, html)
     if re.search(r"</body>", html, re.I):
         return re.sub(r"</body>", tag + "\n</body>", html, count=1, flags=re.I)
     return html + tag
@@ -994,6 +1000,7 @@ def refresh_local_nav_references() -> int:
     for path in ROOT.rglob("index.html"):
         html = path.read_text(encoding="utf-8", errors="replace")
         refreshed = inject_local_nav(html)
+        refreshed = inject_chatbot_widget(refreshed)
         if refreshed == html:
             continue
         path.write_text(refreshed, encoding="utf-8")
