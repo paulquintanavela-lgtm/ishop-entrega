@@ -18,6 +18,9 @@ services:
       N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
       GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-America/Guayaquil}
       TZ: ${GENERIC_TIMEZONE:-America/Guayaquil}
+      CHATWOOT_URL: http://chatwoot:3000
+      CHATWOOT_ACCOUNT_ID: ${CHATWOOT_ACCOUNT_ID:-1}
+      CHATWOOT_BOT_TOKEN: ${CHATWOOT_BOT_TOKEN:-}
     volumes:
       - n8n_data:/home/node/.n8n
       - ./knowledge:/files/knowledge:ro
@@ -45,7 +48,91 @@ services:
     volumes:
       - ollama_data:/root/.ollama
 
+  chatwoot-postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: chatwoot_production
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${CHATWOOT_POSTGRES_PASSWORD:-ishop_chatwoot_local}
+    volumes:
+      - chatwoot_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  chatwoot-redis:
+    image: redis:alpine
+    restart: unless-stopped
+    command: ["redis-server"]
+    volumes:
+      - chatwoot_redis_data:/data
+
+  chatwoot:
+    image: chatwoot/chatwoot:latest-ce
+    restart: unless-stopped
+    depends_on:
+      chatwoot-postgres:
+        condition: service_healthy
+      chatwoot-redis:
+        condition: service_started
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      RAILS_ENV: production
+      INSTALLATION_ENV: docker
+      FRONTEND_URL: http://localhost:3000
+      FORCE_SSL: "false"
+      ENABLE_ACCOUNT_SIGNUP: "true"
+      DEFAULT_LOCALE: es
+      SECRET_KEY_BASE: ${CHATWOOT_SECRET_KEY_BASE}
+      POSTGRES_HOST: chatwoot-postgres
+      POSTGRES_USERNAME: postgres
+      POSTGRES_PASSWORD: ${CHATWOOT_POSTGRES_PASSWORD:-ishop_chatwoot_local}
+      POSTGRES_DATABASE: chatwoot_production
+      DATABASE_URL: postgresql://postgres:${CHATWOOT_POSTGRES_PASSWORD:-ishop_chatwoot_local}@chatwoot-postgres:5432/chatwoot_production?gssencmode=disable
+      REDIS_URL: redis://chatwoot-redis:6379
+      ACTIVE_STORAGE_SERVICE: local
+      RAILS_LOG_TO_STDOUT: "true"
+    volumes:
+      - chatwoot_storage:/app/storage
+    entrypoint: docker/entrypoints/rails.sh
+    command: ["bundle", "exec", "rails", "s", "-p", "3000", "-b", "0.0.0.0"]
+
+  chatwoot-sidekiq:
+    image: chatwoot/chatwoot:latest-ce
+    restart: unless-stopped
+    depends_on:
+      chatwoot-postgres:
+        condition: service_healthy
+      chatwoot-redis:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      RAILS_ENV: production
+      INSTALLATION_ENV: docker
+      FRONTEND_URL: http://localhost:3000
+      FORCE_SSL: "false"
+      SECRET_KEY_BASE: ${CHATWOOT_SECRET_KEY_BASE}
+      POSTGRES_HOST: chatwoot-postgres
+      POSTGRES_USERNAME: postgres
+      POSTGRES_PASSWORD: ${CHATWOOT_POSTGRES_PASSWORD:-ishop_chatwoot_local}
+      POSTGRES_DATABASE: chatwoot_production
+      DATABASE_URL: postgresql://postgres:${CHATWOOT_POSTGRES_PASSWORD:-ishop_chatwoot_local}@chatwoot-postgres:5432/chatwoot_production?gssencmode=disable
+      REDIS_URL: redis://chatwoot-redis:6379
+      ACTIVE_STORAGE_SERVICE: local
+      RAILS_LOG_TO_STDOUT: "true"
+    volumes:
+      - chatwoot_storage:/app/storage
+    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
+
 volumes:
   n8n_data:
   qdrant_data:
   ollama_data:
+  chatwoot_postgres_data:
+  chatwoot_redis_data:
+  chatwoot_storage:

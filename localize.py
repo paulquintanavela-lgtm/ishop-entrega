@@ -15,7 +15,7 @@ from urllib.parse import urljoin, urlparse
 ROOT = Path(__file__).resolve().parent
 ORIGIN = "https://ec.tiendasishop.com"
 LOCAL_NAV_SRC = "/js/local-nav.js?v=20260923-9"
-CHATBOT_WIDGET_SRC = "/chatbot/widget/chatbot-widget.js?v=20260923-2"
+CHATBOT_WIDGET_SRC = "/chatbot/widget/chatbot-widget.js?v=20260923-cw1"
 UA = {
     "User-Agent": (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "

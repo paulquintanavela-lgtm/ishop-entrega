@@ -3,6 +3,8 @@ import { createChat } from "https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bun
 const CHAT_WEBHOOK_URL =
   "http://localhost:5678/webhook/7b30dce3-a9c0-4e49-b25c-3d2f6a71c980/chat";
 const CHAT_OPEN_KEY = "ishop-chat/open";
+const CHATWOOT_CONFIG_URL = "/chatbot/widget/chatwoot-config.json";
+const WIDGET_STYLES = "/chatbot/widget/chatbot-widget.css?v=20260923-cw1";
 
 const QUICK_ACTIONS = [
   {
@@ -20,8 +22,7 @@ const QUICK_ACTIONS = [
   },
   {
     label: "Hablar con un asesor",
-    message:
-      "Quiero hablar con una persona. Ayúdame a identificar el canal y los datos necesarios.",
+    message: "Quiero hablar con un asesor humano en esta misma conversación.",
   },
 ];
 
@@ -34,6 +35,60 @@ function addStylesheet(href) {
   link.rel = "stylesheet";
   link.href = href;
   document.head.append(link);
+}
+
+async function loadChatwootConfig() {
+  try {
+    const response = await fetch(CHATWOOT_CONFIG_URL, { cache: "no-store" });
+    if (!response.ok) {
+      return null;
+    }
+    const config = await response.json();
+    if (!config?.websiteToken) {
+      return null;
+    }
+    return config;
+  } catch {
+    return null;
+  }
+}
+
+function initializeChatwoot(config) {
+  addStylesheet(WIDGET_STYLES);
+
+  window.chatwootSettings = {
+    hideMessageBubble: false,
+    position: "right",
+    locale: "es",
+    type: "expanded_bubble",
+    launcherTitle: "¿Cómo podemos ayudarte?",
+    darkMode: "light",
+  };
+
+  const baseUrl = config.baseUrl || "http://localhost:3000";
+  const script = document.createElement("script");
+  script.src = `${baseUrl}/packs/js/sdk.js`;
+  script.async = true;
+  script.defer = true;
+  script.onload = () => {
+    window.chatwootSDK?.run({
+      websiteToken: config.websiteToken,
+      baseUrl,
+    });
+  };
+  document.head.append(script);
+
+  window.addEventListener("chatwoot:ready", () => {
+    if (localStorage.getItem(CHAT_OPEN_KEY) === "true") {
+      window.$chatwoot?.toggle("open");
+    }
+  });
+  window.addEventListener("chatwoot:opened", () => {
+    localStorage.setItem(CHAT_OPEN_KEY, "true");
+  });
+  window.addEventListener("chatwoot:closed", () => {
+    localStorage.setItem(CHAT_OPEN_KEY, "false");
+  });
 }
 
 function setTextAreaValue(textarea, value) {
@@ -149,13 +204,13 @@ function installEnhancements() {
   observer.observe(document.body, { childList: true, subtree: true });
 }
 
-function initializeChat() {
+function initializeN8nChat() {
   if (document.querySelector("#n8n-chat")) {
     return;
   }
 
   addStylesheet("https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css");
-  addStylesheet("/chatbot/widget/chatbot-widget.css?v=20260923-2");
+  addStylesheet(WIDGET_STYLES);
 
   const target = document.createElement("div");
   target.id = "n8n-chat";
@@ -190,6 +245,15 @@ function initializeChat() {
   });
 
   installEnhancements();
+}
+
+async function initializeChat() {
+  const chatwootConfig = await loadChatwootConfig();
+  if (chatwootConfig) {
+    initializeChatwoot(chatwootConfig);
+    return;
+  }
+  initializeN8nChat();
 }
 
 if (document.readyState === "loading") {

@@ -246,6 +246,23 @@
   content: "";
 }
 
+.woot-widget-bubble,
+.woot--bubble-holder .woot-widget-bubble {
+  background: #ec7b32 !important;
+  border: 3px solid #ffffff !important;
+  box-shadow:
+    0 14px 36px rgb(29 29 31 / 22%),
+    0 3px 10px rgb(29 29 31 / 14%) !important;
+}
+
+.woot-widget-bubble:hover {
+  background: #d96925 !important;
+}
+
+.woot-widget-bubble.woot-widget--expanded {
+  background: #ec7b32 !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ishop-chat-actions button {
     transition: none;
