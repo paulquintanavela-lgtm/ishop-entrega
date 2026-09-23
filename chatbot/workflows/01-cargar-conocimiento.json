@@ -10,7 +10,7 @@
       "parameters": {
         "width": 920,
         "height": 220,
-        "content": "## Cargar documentos a Qdrant\n\n1. Asigna la credencial **Google Gemini(PaLM) Api** al nodo de embeddings.\n2. Asigna la credencial **QdrantApi** con URL `http://qdrant:6333` al Vector Store.\n3. Activa el workflow y abre la URL de producción del formulario.\n4. Sube los archivos de `chatbot/knowledge/` excepto `preguntas-prueba.md`."
+        "content": "## Cargar documentos a Qdrant\n\n1. Asigna la credencial **Ollama API** con URL `http://ollama:11434` al nodo de embeddings.\n2. Usa el modelo local `nomic-embed-text:latest`.\n3. Asigna la credencial **QdrantApi** con URL `http://qdrant:6333` al Vector Store.\n4. Activa el workflow y abre la URL de producción del formulario.\n5. Sube los archivos de `chatbot/knowledge/` excepto `preguntas-prueba.md`."
       }
     },
     {
@@ -68,11 +68,13 @@
     },
     {
       "id": "71ae8903-e2f7-440b-bcbf-734c6f0f29ba",
-      "name": "Embeddings Google Gemini",
-      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "name": "Embeddings Ollama",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
       "typeVersion": 1,
       "position": [380, 380],
-      "parameters": {}
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      }
     },
     {
       "id": "ba25b879-f50a-4899-a027-54f06fb9e5e8",
@@ -110,8 +112,8 @@
       "typeVersion": 1,
       "position": [620, 600],
       "parameters": {
-        "chunkSize": 1000,
-        "chunkOverlap": 200,
+        "chunkSize": 5000,
+        "chunkOverlap": 300,
         "options": {}
       }
     }
@@ -128,7 +130,7 @@
         ]
       ]
     },
-    "Embeddings Google Gemini": {
+    "Embeddings Ollama": {
       "ai_embedding": [
         [
           {

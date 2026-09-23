@@ -8,6 +8,7 @@ echo
 echo "Servicios iniciados:"
 echo "- n8n:    http://localhost:5678"
 echo "- Qdrant: http://localhost:6333/dashboard"
+echo "- Ollama: http://localhost:11434"
 echo "- Tienda: http://localhost:8080"
 echo
 echo "La primera vez, crea el usuario propietario en n8n y configura las credenciales."

@@ -10,6 +10,7 @@ del chatbot vive en esta carpeta. La tienda solo carga el archivo
 Página local :8080
   → Chat Trigger de n8n :5678
   → AI Agent + Gemini
+  → Ollama local para embeddings :11434
   → Qdrant local :6333
   → respuesta en el widget
 ```
@@ -25,7 +26,7 @@ No incluye WhatsApp, Shopify Admin, tracking de pedidos ni citas reales.
 
 ## Archivos
 
-- `compose.yml`: n8n Community + Qdrant.
+- `compose.yml`: n8n Community + Qdrant + Ollama.
 - `workflows/01-cargar-conocimiento.json`: formulario para cargar archivos RAG.
 - `workflows/02-chatbot-web.json`: chatbot web con Gemini y Qdrant.
 - `workflows/03-solicitud-asesor-email.json`: formulario de correo opcional.
@@ -78,7 +79,16 @@ También se pueden importar manualmente desde n8n usando los tres JSON de
 1. En n8n, abrir **Credentials**.
 2. Crear `Google Gemini(PaLM) Api`.
 3. Pegar la API key de Google AI Studio.
-4. Asignarla a los nodos Gemini de los workflows 01 y 02.
+4. Asignarla únicamente al nodo `Google Gemini` del workflow 02.
+
+### Ollama API
+
+1. Crear la credencial `Ollama API`.
+2. URL interna: `http://ollama:11434`
+3. Asignarla a `Embeddings Ollama` en los workflows 01 y 02.
+4. Modelo: `nomic-embed-text:latest`.
+
+Ollama genera los embeddings localmente, sin API key, cuota ni costo.
 
 ### QdrantApi
 
@@ -100,12 +110,14 @@ contraseña de aplicación. Asignar la credencial SMTP al workflow 03 y reemplaz
 ## 5. Cargar documentos a Qdrant
 
 1. Configurar y activar `iShop 01 - Cargar conocimiento RAG`.
-2. Abrir la **Production URL** del nodo `Cargar documento`.
-3. Subir, uno por uno:
+2. En el nodo `Dividir texto`, usar **Chunk Size 5000** y
+   **Chunk Overlap 300**.
+3. Abrir la **Production URL** del nodo `Cargar documento`.
+4. Subir, uno por uno:
    - `catalogo-productos.md`
    - `contenido-publico-ishop.md`
    - `reglas-asistente.md`
-4. No subir `preguntas-prueba.md`: se utiliza para evaluar.
+5. No subir `preguntas-prueba.md`: se utiliza para evaluar.
 
 La colección utilizada por ambos workflows se llama `ishop_knowledge`.
 
@@ -113,8 +125,13 @@ La colección utilizada por ambos workflows se llama `ishop_knowledge`.
 
 1. Configurar las credenciales del workflow `iShop 02 - Chatbot web con RAG`.
 2. Sustituir `TU_CORREO_PERSONAL` en el System Message.
-3. Activar el workflow.
-4. Abrir <http://localhost:8080> y usar el botón del chat.
+3. En `Cuando llega un mensaje`, activar **Make Chat Publicly Available** y
+   seleccionar **Embedded Chat**.
+4. En ese mismo nodo, configurar **Load Previous Session → From Memory**.
+5. Conectar `Memoria simple` tanto a `Asistente iShop` como a
+   `Cuando llega un mensaje`.
+6. Guardar y publicar/activar el workflow.
+7. Abrir <http://localhost:8080> y usar el botón del chat.
 
 El widget ya apunta al webhook:
 
@@ -138,4 +155,4 @@ Resultado mínimo:
 bash chatbot/stop.sh
 ```
 
-Los datos de n8n y Qdrant quedan guardados en volúmenes Docker.
+Los datos de n8n, Qdrant y Ollama quedan guardados en volúmenes Docker.

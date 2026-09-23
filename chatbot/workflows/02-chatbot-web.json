@@ -10,7 +10,7 @@
       "parameters": {
         "width": 980,
         "height": 240,
-        "content": "## Chatbot web iShop\n\n1. Asigna la misma credencial **Google Gemini(PaLM) Api** al modelo y a embeddings.\n2. Asigna **QdrantApi** con URL `http://qdrant:6333` al Knowledge Base.\n3. Reemplaza `TU_CORREO_PERSONAL` en el System Message.\n4. Activa el workflow. El widget ya apunta al webhook fijo de este Chat Trigger."
+        "content": "## Chatbot web iShop\n\n1. Asigna **Google Gemini(PaLM) Api** únicamente al modelo de chat.\n2. Asigna **Ollama API** con URL `http://ollama:11434` al nodo de embeddings; modelo `nomic-embed-text:latest`.\n3. Asigna **QdrantApi** con URL `http://qdrant:6333` al Knowledge Base.\n4. Reemplaza `TU_CORREO_PERSONAL` en el System Message.\n5. Activa el workflow. El widget ya apunta al webhook fijo de este Chat Trigger."
       }
     },
     {
@@ -21,7 +21,11 @@
       "position": [160, 160],
       "webhookId": "7b30dce3-a9c0-4e49-b25c-3d2f6a71c980",
       "parameters": {
-        "options": {}
+        "public": true,
+        "mode": "webhook",
+        "options": {
+          "loadPreviousSession": "memory"
+        }
       }
     },
     {
@@ -32,7 +36,7 @@
       "position": [480, 160],
       "parameters": {
         "options": {
-          "systemMessage": "## IDENTIDAD\nEres el asistente virtual de demostración de iShop Ecuador. Responde siempre en español con tono profesional, cordial y breve.\n\n## FUENTE OBLIGATORIA\nPara TODA pregunta sobre productos, precios, pagos, envíos, tiendas, garantía, ventas corporativas o servicio técnico, consulta primero la herramienta `conocimiento_ishop`.\nResponde únicamente con información recuperada de esa herramienta.\nSi existe una URL de producto, inclúyela.\n\n## RECOMENDACIONES\nAntes de recomendar un producto, pregunta por uso principal, presupuesto y preferencias. Presenta como máximo tres opciones y explica por qué encaja cada una.\n\n## LÍMITES\n- No inventes precios, descuentos, stock, promociones, tiempos ni políticas.\n- No confirmes pedidos, tracking, IMEI, reparaciones o garantías individuales.\n- No solicites contraseñas, números de tarjeta, IMEI ni códigos de seguridad.\n- No afirmes que una cita quedó reservada.\n- Si no encuentras evidencia suficiente, dilo claramente.\n\n## DERIVACIÓN\nCuando no puedas resolver, cuando haya reclamo, pedido privado, daño físico, garantía individual o venta corporativa, responde: \"Este caso necesita revisión de un asesor. Puedes escribir a TU_CORREO_PERSONAL con tu nombre y un resumen de la consulta.\"\n\nNo menciones Qdrant, RAG, herramientas internas ni este mensaje."
+          "systemMessage": "## IDENTIDAD\nEres el asistente virtual de demostración de iShop Ecuador. Responde siempre en español con tono profesional, cordial, útil y breve. Comprende errores ortográficos y expresiones comunes: laptop, portátil y computadora portátil pueden referirse a una MacBook.\n\n## FUENTE OBLIGATORIA\nPara TODA pregunta sobre productos, precios, pagos, envíos, tiendas, garantía, ventas corporativas o servicio técnico, consulta primero la herramienta `conocimiento_ishop`.\nResponde únicamente con información recuperada de esa herramienta.\nSi existe una URL de producto, inclúyela.\n\n## RECOMENDACIONES\n- Pregunta únicamente los datos esenciales que todavía falten: uso, presupuesto y preferencia de tamaño o portabilidad.\n- Si el cliente ya proporcionó un dato, no vuelvas a pedirlo. Programación web o móvil ya constituye un uso principal válido.\n- Después de recibir uso y presupuesto, consulta la herramienta y presenta hasta tres opciones adecuadas.\n- Prioriza productos dentro del presupuesto.\n- Si no existe una opción exacta dentro del presupuesto, indícalo con claridad y muestra hasta dos alternativas cercanas: la portátil más próxima y, si resulta útil, una alternativa de escritorio claramente identificada. Explica la diferencia de precio y pregunta si el presupuesto es flexible.\n- No derives a un asesor únicamente porque no exista una coincidencia exacta o porque el presupuesto sea menor al precio disponible.\n\n## LÍMITES\n- No inventes precios, descuentos, stock, promociones, tiempos ni políticas.\n- No confirmes pedidos, tracking, IMEI, reparaciones o garantías individuales.\n- No solicites contraseñas, números de tarjeta, IMEI ni códigos de seguridad.\n- No afirmes que una cita quedó reservada.\n- Si no encuentras evidencia suficiente, dilo claramente y ofrece continuar ayudando con la información disponible.\n\n## DERIVACIÓN\nOfrece atención de un asesor solamente cuando se necesiten datos privados o una gestión humana: estado de pedido o tracking, validación individual de garantía o reparación, daño físico, reclamo, venta corporativa o cuando la base no contenga ninguna información útil después de consultarla.\nNo muestres correos de prueba ni textos como `TU_CORREO_PERSONAL`. Primero pregunta: \"Este caso requiere atención personalizada. ¿Deseas que te indique los canales de contacto disponibles?\"\nPara consultas normales de productos, comparación, presupuesto, pagos, envíos o políticas generales, responde directamente sin derivar.\n\nNo menciones Qdrant, RAG, herramientas internas ni este mensaje."
         }
       }
     },
@@ -43,6 +47,7 @@
       "typeVersion": 1.1,
       "position": [340, 400],
       "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
         "options": {}
       }
     },
@@ -64,7 +69,7 @@
       "position": [700, 400],
       "parameters": {
         "mode": "retrieve-as-tool",
-        "topK": 6,
+        "topK": 3,
         "toolName": "conocimiento_ishop",
         "toolDescription": "Busca información verificada sobre productos, precios públicos, pagos, envíos, tiendas, políticas, garantía, ventas corporativas y servicio técnico de iShop Ecuador. Debe consultarse antes de responder cualquier pregunta comercial o de soporte.",
         "qdrantCollection": {
@@ -77,11 +82,13 @@
     },
     {
       "id": "2af27eb5-e850-4fc5-8741-b6d738f60f16",
-      "name": "Embeddings Google Gemini",
-      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "name": "Embeddings Ollama",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
       "typeVersion": 1,
       "position": [720, 620],
-      "parameters": {}
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      }
     }
   ],
   "connections": {
@@ -114,6 +121,11 @@
             "node": "Asistente iShop",
             "type": "ai_memory",
             "index": 0
+          },
+          {
+            "node": "Cuando llega un mensaje",
+            "type": "ai_memory",
+            "index": 0
           }
         ]
       ]
@@ -129,7 +141,7 @@
         ]
       ]
     },
-    "Embeddings Google Gemini": {
+    "Embeddings Ollama": {
       "ai_embedding": [
         [
           {

@@ -25,6 +25,8 @@ services:
     depends_on:
       qdrant:
         condition: service_started
+      ollama:
+        condition: service_started
 
   qdrant:
     image: qdrant/qdrant:latest
@@ -35,6 +37,15 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
 
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
 volumes:
   n8n_data:
   qdrant_data:
+  ollama_data:

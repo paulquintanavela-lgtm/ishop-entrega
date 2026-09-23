@@ -95,6 +95,8 @@ def product_markdown(product: dict[str, Any]) -> str:
     body_html = str(product.get("body_html", ""))
     description = re.sub(r"<[^>]+>", " ", body_html)
     description = re.sub(r"\s+", " ", unescape(description)).strip()
+    if len(description) > 1200:
+        description = f"{description[:1200].rstrip()}…"
     tags = product.get("tags", [])
     tag_text = ", ".join(str(tag) for tag in tags) if isinstance(tags, list) else str(tags)
 
