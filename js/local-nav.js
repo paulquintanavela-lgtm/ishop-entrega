@@ -1,4 +1,5 @@
 (function () {
+  var LOCAL_CONTENT_VERSION = "20260923-2";
   var SHOP_HOSTS = {
     "ec.tiendasishop.com": true,
     "www.tiendasishop.com": true,
@@ -26,10 +27,21 @@
     }
     try {
       var url = new URL(href, base || window.location.origin);
-      if (!SHOP_HOSTS[url.hostname]) return null;
+      var isCurrentSite = url.origin === window.location.origin;
+      if (!SHOP_HOSTS[url.hostname] && !isCurrentSite) return null;
       if (isAssetPath(url.pathname)) return null;
       if (url.pathname.indexOf("/customer_authentication") === 0) return "/account/";
-      return url.pathname + url.search + url.hash;
+      var pathname = url.pathname;
+      var isFile = /\/[^/]+\.[a-z0-9]+$/i.test(pathname);
+      if (pathname !== "/" && !isFile && pathname.charAt(pathname.length - 1) !== "/") {
+        pathname += "/";
+      }
+      var params = new URLSearchParams(url.search);
+      if (!isFile) {
+        params.set("_localv", LOCAL_CONTENT_VERSION);
+      }
+      var search = params.toString() ? "?" + params.toString() : "";
+      return pathname + search + url.hash;
     } catch (err) {
       return null;
     }
@@ -42,6 +54,23 @@
     if (!local) return;
     anchor.setAttribute("href", local);
     anchor.removeAttribute("target");
+    if (
+      anchor.matches &&
+      anchor.matches(".main-nav__item--toggle > a") &&
+      !anchor.dataset.localPrimaryNavigation
+    ) {
+      anchor.dataset.localPrimaryNavigation = "true";
+      anchor.addEventListener("pointerdown", function (event) {
+        var destination = toLocalUrl(anchor.getAttribute("href"));
+        if (!destination) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === "function") {
+          event.stopImmediatePropagation();
+        }
+        window.location.assign(destination);
+      }, true);
+    }
   }
 
   function rewriteAll(root) {
@@ -49,6 +78,21 @@
     if (!scope.querySelectorAll) return;
     var links = scope.querySelectorAll("a[href]");
     for (var i = 0; i < links.length; i += 1) rewriteAnchor(links[i]);
+  }
+
+  function simplifyMainMenu() {
+    var toggles = document.querySelectorAll("header summary.main-nav__item--toggle");
+    for (var i = 0; i < toggles.length; i += 1) {
+      var details = toggles[i].parentElement;
+      var anchor = toggles[i].querySelector(":scope > a[href]");
+      if (!details || details.tagName !== "DETAILS" || !anchor) continue;
+      var directLink = anchor.cloneNode(true);
+      var icons = directLink.querySelectorAll("svg");
+      for (var j = 0; j < icons.length; j += 1) {
+        icons[j].remove();
+      }
+      details.replaceWith(directLink);
+    }
   }
 
   function keepClickLocal(event) {
@@ -64,6 +108,29 @@
     window.location.assign(local);
   }
 
+  function keepPrimaryMenuClickLocal(event) {
+    var link = event.target && event.target.closest ? event.target.closest("a[href]") : null;
+    var isPrimaryLink = link && link.matches(
+      ".main-nav__item--toggle > a, header .main-nav__item--primary"
+    );
+    if (!isPrimaryLink) {
+      var toggle = event.target && event.target.closest
+        ? event.target.closest("summary.main-nav__item--toggle")
+        : null;
+      link = toggle ? toggle.querySelector(":scope > a[href]") : null;
+    }
+    if (!link) return;
+    var local = toLocalUrl(link.getAttribute("href")) || toLocalUrl(link.href);
+    if (!local) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (typeof event.stopImmediatePropagation === "function") {
+      event.stopImmediatePropagation();
+    }
+    window.location.assign(local);
+  }
+
+  window.addEventListener("click", keepPrimaryMenuClickLocal, true);
   document.addEventListener("click", keepClickLocal, true);
   document.addEventListener("auxclick", keepClickLocal, true);
   document.addEventListener("submit", function (event) {
@@ -91,9 +158,13 @@
     }
   }
 
-  if (document.documentElement) rewriteAll(document);
+  if (document.documentElement) {
+    simplifyMainMenu();
+    rewriteAll(document);
+  }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () {
+      simplifyMainMenu();
       rewriteAll(document);
       patchSearch();
     });

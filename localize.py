@@ -14,6 +14,7 @@ from urllib.parse import urljoin, urlparse
 
 ROOT = Path(__file__).resolve().parent
 ORIGIN = "https://ec.tiendasishop.com"
+LOCAL_NAV_SRC = "/js/local-nav.js?v=20260923-9"
 UA = {
     "User-Agent": (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -162,9 +163,13 @@ def ensure_local_assets(html: str) -> str:
 
 
 def inject_local_nav(html: str) -> str:
-    tag = '<script src="/js/local-nav.js"></script>'
-    if "js/local-nav.js" in html:
-        return html
+    tag = f'<script src="{LOCAL_NAV_SRC}"></script>'
+    existing = re.compile(
+        r'<script\s+src="/js/local-nav\.js(?:\?[^"]*)?"\s*></script>',
+        flags=re.I,
+    )
+    if existing.search(html):
+        return existing.sub(tag, html)
     if re.search(r"</body>", html, re.I):
         return re.sub(r"</body>", tag + "\n</body>", html, count=1, flags=re.I)
     return html + tag
@@ -984,12 +989,26 @@ def render_catalog_menu_pages() -> int:
     return len(CATALOG_MENU_PAGES)
 
 
+def refresh_local_nav_references() -> int:
+    updated = 0
+    for path in ROOT.rglob("index.html"):
+        html = path.read_text(encoding="utf-8", errors="replace")
+        refreshed = inject_local_nav(html)
+        if refreshed == html:
+            continue
+        path.write_text(refreshed, encoding="utf-8")
+        updated += 1
+    return updated
+
+
 if __name__ == "__main__":
     product_total = render_catalog_product_pages()
     collection_total = render_catalog_collection_pages()
     menu_page_total = render_catalog_menu_pages()
+    navigation_total = refresh_local_nav_references()
     print(
         f"Páginas de producto generadas: {product_total}; "
         f"colecciones generadas: {collection_total}; "
-        f"páginas de menú generadas: {menu_page_total}"
+        f"páginas de menú generadas: {menu_page_total}; "
+        f"referencias de navegación actualizadas: {navigation_total}"
     )
