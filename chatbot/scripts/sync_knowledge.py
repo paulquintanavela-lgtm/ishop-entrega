@@ -15,6 +15,7 @@ CHATBOT_ROOT = Path(__file__).resolve().parents[1]
 SHOP_ROOT = CHATBOT_ROOT.parent
 KNOWLEDGE_DIR = CHATBOT_ROOT / "knowledge"
 PRODUCTS_URL = "https://ec.tiendasishop.com/products.json?limit=250"
+PRODUCT_IMAGES_PATH = KNOWLEDGE_DIR / "product-images.json"
 PUBLIC_PAGES = {
     "Preguntas frecuentes": "pages/preguntas-frecuentes/index.html",
     "Devolución y garantía": "pages/politicas-de-devolucion-cambio-garantia/index.html",
@@ -139,6 +140,27 @@ def write_catalog(products: list[dict[str, Any]]) -> Path:
     return destination
 
 
+def write_product_images(products: list[dict[str, Any]]) -> Path:
+    image_by_handle: dict[str, str] = {}
+    for product in products:
+        handle = str(product.get("handle", "")).strip()
+        images = product.get("images", [])
+        if not handle or not isinstance(images, list) or not images:
+            continue
+        first_image = images[0]
+        if not isinstance(first_image, dict):
+            continue
+        source = str(first_image.get("src", "")).strip()
+        if source:
+            image_by_handle[handle] = source
+
+    PRODUCT_IMAGES_PATH.write_text(
+        json.dumps(image_by_handle, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return PRODUCT_IMAGES_PATH
+
+
 def extract_page(path: Path) -> str:
     parser = MainContentParser()
     parser.feed(path.read_text(encoding="utf-8", errors="ignore"))
@@ -177,8 +199,10 @@ def main() -> None:
     KNOWLEDGE_DIR.mkdir(parents=True, exist_ok=True)
     products = fetch_products()
     catalog_path = write_catalog(products)
+    images_path = write_product_images(products)
     content_path = write_public_content()
     print(f"Catálogo generado: {catalog_path} ({len(products)} productos)")
+    print(f"Imágenes generadas: {images_path}")
     print(f"Contenido generado: {content_path}")
 
 

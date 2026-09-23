@@ -69,6 +69,13 @@
   line-height: 0.95;
 }
 
+.local-product__image {
+  width: min(100%, 620px);
+  max-height: 560px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
 .local-product__summary {
   display: flex;
   flex-direction: column;

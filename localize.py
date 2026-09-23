@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import unicodedata
 import urllib.error
@@ -487,11 +488,25 @@ def parse_catalog_products() -> list[dict[str, object]]:
     if current is not None:
         products.append(current)
 
-    return [
+    image_catalog = ROOT / "chatbot" / "knowledge" / "product-images.json"
+    image_by_handle: dict[str, str] = {}
+    if image_catalog.exists():
+        raw_images = json.loads(image_catalog.read_text(encoding="utf-8"))
+        if isinstance(raw_images, dict):
+            image_by_handle = {
+                str(handle): str(image_url)
+                for handle, image_url in raw_images.items()
+            }
+
+    valid_products = [
         product
         for product in products
         if urlparse(str(product["url"])).path.startswith("/products/")
     ]
+    for product in valid_products:
+        handle = urlparse(str(product["url"])).path.rstrip("/").split("/")[-1]
+        product["image"] = image_by_handle.get(handle, "")
+    return valid_products
 
 
 def variant_parts(variant: str) -> tuple[str, str, str]:
@@ -515,6 +530,14 @@ def product_starting_price(variants: list[str]) -> str:
     return f"Desde ${min(prices):,.2f}"
 
 
+def sized_image_url(image_url: object, width: int) -> str:
+    source = str(image_url).strip()
+    if not source:
+        return ""
+    separator = "&" if "?" in source else "?"
+    return f"{source}{separator}width={width}"
+
+
 def render_product_body(product: dict[str, object]) -> str:
     name = escape(str(product["name"]))
     product_type = escape(str(product["type"]) or "Producto")
@@ -523,6 +546,17 @@ def render_product_body(product: dict[str, object]) -> str:
     source_url = escape(str(product["url"]), quote=True)
     variants = [str(item) for item in product["variants"]]
     starting_price = escape(product_starting_price(variants))
+    image_url = sized_image_url(product.get("image", ""), 1000)
+    if image_url:
+        visual_content = (
+            f'<img class="local-product__image" src="{escape(image_url, quote=True)}" '
+            f'alt="{name}" loading="eager">'
+        )
+    else:
+        visual_content = (
+            f'<span class="local-product__brand">{brand}</span>'
+            f'<span class="local-product__device">{product_type}</span>'
+        )
 
     raw_tags = str(product["tags"])
     tags = [] if raw_tags == "Sin etiquetas" else [
@@ -560,9 +594,8 @@ def render_product_body(product: dict[str, object]) -> str:
     </nav>
 
     <section class="local-product__hero">
-      <div class="local-product__visual" aria-hidden="true">
-        <span class="local-product__brand">{brand}</span>
-        <span class="local-product__device">{product_type}</span>
+      <div class="local-product__visual">
+        {visual_content}
       </div>
       <div class="local-product__summary">
         <p class="local-product__eyebrow">{brand} · {product_type}</p>
@@ -766,10 +799,21 @@ def render_collection_card(product: dict[str, object]) -> str:
     path = urlparse(str(product["url"])).path.rstrip("/") + "/"
     variants = [str(item) for item in product["variants"]]
     price = escape(product_starting_price(variants))
+    image_url = sized_image_url(product.get("image", ""), 600)
+    if image_url:
+        visual = (
+            '<div class="local-collection__visual">'
+            f'<img src="{escape(image_url, quote=True)}" alt="{name}" loading="lazy">'
+            "</div>"
+        )
+    else:
+        visual = (
+            '<div class="local-collection__visual" aria-hidden="true">'
+            f"<span>{product_type}</span></div>"
+        )
     return (
         '<article class="local-collection__card">'
-        '<div class="local-collection__visual" aria-hidden="true">'
-        f"<span>{product_type}</span></div>"
+        f"{visual}"
         '<div class="local-collection__card-body">'
         f"<p>{product_type}</p><h2><a href=\"{escape(path, quote=True)}\">{name}</a></h2>"
         f'<strong>{price}</strong>'

@@ -91,6 +91,13 @@
   line-height: 1.05;
 }
 
+.local-collection__visual img {
+  width: 100%;
+  height: 210px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
 .local-collection__card-body {
   display: flex;
   flex: 1;
