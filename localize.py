@@ -6,7 +6,7 @@ from __future__ import annotations
 import re
 import urllib.error
 import urllib.request
-from html import unescape
+from html import escape, unescape
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
@@ -428,3 +428,215 @@ def rewrite_existing_index() -> None:
     html = index.read_text(encoding="utf-8", errors="replace")
     html = localize_html(html, "/")
     index.write_text(html, encoding="utf-8")
+
+
+def parse_catalog_products() -> list[dict[str, object]]:
+    catalog = ROOT / "chatbot" / "knowledge" / "catalogo-productos.md"
+    if not catalog.exists():
+        raise FileNotFoundError(f"No se encontró el catálogo: {catalog}")
+
+    products: list[dict[str, object]] = []
+    current: dict[str, object] | None = None
+    reading_variants = False
+
+    for raw_line in catalog.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if line.startswith("## "):
+            if current is not None:
+                products.append(current)
+            current = {
+                "name": line[3:].strip(),
+                "url": "",
+                "type": "",
+                "brand": "",
+                "tags": "",
+                "description": "",
+                "variants": [],
+            }
+            reading_variants = False
+            continue
+
+        if current is None:
+            continue
+        if line == "- Variantes:":
+            reading_variants = True
+            continue
+
+        field_match = re.match(
+            r"^- (URL|Tipo|Marca|Etiquetas|Descripción):\s*(.*)$",
+            line,
+        )
+        if field_match:
+            field_name = {
+                "URL": "url",
+                "Tipo": "type",
+                "Marca": "brand",
+                "Etiquetas": "tags",
+                "Descripción": "description",
+            }[field_match.group(1)]
+            current[field_name] = field_match.group(2).strip()
+            reading_variants = False
+            continue
+
+        if reading_variants and line.startswith("- "):
+            variants = current["variants"]
+            if isinstance(variants, list):
+                variants.append(line[2:].strip())
+
+    if current is not None:
+        products.append(current)
+
+    return [
+        product
+        for product in products
+        if urlparse(str(product["url"])).path.startswith("/products/")
+    ]
+
+
+def variant_parts(variant: str) -> tuple[str, str, str]:
+    match = re.match(
+        r"^(.*?):\s*(\$[0-9]+(?:\.[0-9]+)?)(?:\s+\((.*?)\))?$",
+        variant,
+    )
+    if not match:
+        return variant, "", ""
+    return match.group(1), match.group(2), match.group(3) or ""
+
+
+def product_starting_price(variants: list[str]) -> str:
+    prices: list[float] = []
+    for variant in variants:
+        match = re.search(r"\$([0-9]+(?:\.[0-9]+)?)", variant)
+        if match:
+            prices.append(float(match.group(1)))
+    if not prices:
+        return "Precio no disponible"
+    return f"Desde ${min(prices):,.2f}"
+
+
+def render_product_body(product: dict[str, object]) -> str:
+    name = escape(str(product["name"]))
+    product_type = escape(str(product["type"]) or "Producto")
+    brand = escape(str(product["brand"]) or "iShop")
+    description = escape(str(product["description"]))
+    source_url = escape(str(product["url"]), quote=True)
+    variants = [str(item) for item in product["variants"]]
+    starting_price = escape(product_starting_price(variants))
+
+    raw_tags = str(product["tags"])
+    tags = [] if raw_tags == "Sin etiquetas" else [
+        tag.strip() for tag in raw_tags.split(",") if tag.strip()
+    ]
+    tag_html = "".join(
+        f'<span class="local-product__tag">{escape(tag)}</span>' for tag in tags
+    )
+
+    variant_items: list[str] = []
+    for variant in variants:
+        option, price, availability = variant_parts(variant)
+        availability_html = (
+            f'<span class="local-product__availability">{escape(availability)}</span>'
+            if availability
+            else ""
+        )
+        variant_items.append(
+            '<li class="local-product__variant">'
+            f'<span class="local-product__variant-name">{escape(option)}</span>'
+            f'<strong class="local-product__variant-price">{escape(price)}</strong>'
+            f"{availability_html}</li>"
+        )
+    variants_html = "".join(variant_items) or (
+        '<li class="local-product__variant">No hay variantes publicadas.</li>'
+    )
+
+    return f"""
+<main id="main-content" class="local-product">
+  <div class="local-product__container">
+    <nav class="local-product__breadcrumb" aria-label="Migas de pan">
+      <a href="/">Inicio</a><span aria-hidden="true">/</span>
+      <a href="/collections/all/">Productos</a><span aria-hidden="true">/</span>
+      <span>{name}</span>
+    </nav>
+
+    <section class="local-product__hero">
+      <div class="local-product__visual" aria-hidden="true">
+        <span class="local-product__brand">{brand}</span>
+        <span class="local-product__device">{product_type}</span>
+      </div>
+      <div class="local-product__summary">
+        <p class="local-product__eyebrow">{brand} · {product_type}</p>
+        <h1>{name}</h1>
+        <p class="local-product__price">{starting_price}</p>
+        <div class="local-product__tags">{tag_html}</div>
+        <p class="local-product__notice">
+          Precio y disponibilidad tomados del catálogo público de demostración.
+          Pueden cambiar.
+        </p>
+        <div class="local-product__actions">
+          <a class="local-product__button" href="{source_url}" target="_blank"
+             rel="noopener noreferrer">Ver ficha original</a>
+          <a class="local-product__secondary" href="/collections/all/">
+            Ver más productos
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="local-product__section" aria-labelledby="description-title">
+      <h2 id="description-title">Descripción</h2>
+      <p>{description}</p>
+    </section>
+
+    <section class="local-product__section" aria-labelledby="variants-title">
+      <h2 id="variants-title">Opciones y precios publicados</h2>
+      <ul class="local-product__variants">{variants_html}</ul>
+    </section>
+  </div>
+</main>
+"""
+
+
+def render_catalog_product_pages() -> int:
+    products = parse_catalog_products()
+    header, footer = load_shell()
+    stylesheet = '<link rel="stylesheet" href="/css/local-product.css">'
+    if stylesheet not in header:
+        header = re.sub(
+            r"</head>",
+            f"  {stylesheet}\n</head>",
+            header,
+            count=1,
+            flags=re.I,
+        )
+
+    generated = 0
+    for product in products:
+        product_url = str(product["url"])
+        path = urlparse(product_url).path.rstrip("/")
+        if not path.startswith("/products/"):
+            continue
+
+        title = escape(str(product["name"]))
+        page_header = re.sub(
+            r"<title>.*?</title>",
+            f"<title>{title} | iShop Ecuador</title>",
+            header,
+            count=1,
+            flags=re.I | re.S,
+        )
+        page = (
+            f"{page_header}<!-- END sections: header-group -->"
+            f"{render_product_body(product)}"
+            f"{footer}"
+        )
+        destination = page_file(path)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(page, encoding="utf-8")
+        generated += 1
+
+    return generated
+
+
+if __name__ == "__main__":
+    total = render_catalog_product_pages()
+    print(f"Páginas de producto generadas: {total}")
