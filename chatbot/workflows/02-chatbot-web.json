@@ -118,12 +118,12 @@
       "ai_memory": [
         [
           {
-            "node": "Asistente iShop",
+            "node": "Cuando llega un mensaje",
             "type": "ai_memory",
             "index": 0
           },
           {
-            "node": "Cuando llega un mensaje",
+            "node": "Asistente iShop",
             "type": "ai_memory",
             "index": 0
           }
