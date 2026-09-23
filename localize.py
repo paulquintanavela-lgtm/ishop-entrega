@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 import urllib.error
 import urllib.request
 from html import escape, unescape
@@ -637,6 +638,314 @@ def render_catalog_product_pages() -> int:
     return generated
 
 
+COLLECTION_TITLES = {
+    "all": "Todos los productos",
+    "todos-los-mac": "Todos los Mac",
+    "todos-los-ipad": "Todos los iPad",
+    "todos-los-iphone": "Todos los iPhone",
+    "todos-los-apple-watch": "Todos los Apple Watch",
+    "macbook-air": "MacBook Air",
+    "macbook-pro": "MacBook Pro",
+    "mac-mini": "Mac mini",
+    "ipad-air": "iPad Air",
+    "ipad-pro": "iPad Pro",
+    "airpods": "AirPods",
+    "airtag": "AirTag",
+    "apple-tv": "Apple TV",
+    "parlantes": "Parlantes",
+    "audifonos": "Audífonos",
+    "cargadores": "Cargadores",
+    "todas-las-promociones": "Productos destacados",
+}
+
+
+def normalize_text(value: object) -> str:
+    text = unicodedata.normalize("NFKD", str(value))
+    text = "".join(character for character in text if not unicodedata.combining(character))
+    return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
+
+
+def is_primary_device(product: dict[str, object]) -> bool:
+    name = normalize_text(product["name"])
+    prefixes = (
+        "iphone ",
+        "ipad ",
+        "apple watch ",
+        "macbook ",
+        "imac ",
+        "mac mini ",
+        "airpods ",
+        "apple tv ",
+    )
+    return name.startswith(prefixes)
+
+
+def product_matches_collection(
+    product: dict[str, object],
+    handle: str,
+) -> bool:
+    name = normalize_text(product["name"])
+    product_type = normalize_text(product["type"])
+    brand = normalize_text(product["brand"])
+    tags = normalize_text(product["tags"])
+    searchable = " ".join((name, product_type, brand, tags))
+
+    if handle == "all":
+        return True
+    if handle == "todos-los-mac":
+        return any(term in name for term in ("macbook", "imac", "mac mini"))
+    if handle == "todos-los-ipad":
+        return name.startswith("ipad ")
+    if handle == "todos-los-iphone":
+        return name.startswith("iphone ")
+    if handle == "todos-los-apple-watch":
+        return name.startswith("apple watch ")
+    if handle == "todas-las-promociones":
+        return is_primary_device(product)
+    if handle == "parlantes":
+        return any(term in searchable for term in ("parlante", "soundlink", "bose s1"))
+    if handle == "audifonos":
+        return any(
+            term in searchable
+            for term in ("audifono", "airpods", "earbuds", "earpods", "major v")
+        )
+    if handle == "cargadores":
+        return any(
+            term in searchable
+            for term in ("cargador", "adaptador de corriente", "base de carga")
+        )
+
+    accessory_target = re.fullmatch(r"accesorios-para-(.+)", handle)
+    if accessory_target:
+        target = normalize_text(accessory_target.group(1))
+        target = {
+            "apple watch": "apple watch",
+            "airpods": "airpods",
+            "iphone": "iphone",
+            "ipad": "ipad",
+            "mac": "mac",
+            "gear4": "gear4",
+        }.get(target, target)
+        return target in searchable and not is_primary_device(product)
+
+    brand_collection = re.fullmatch(r"accesorios-de-(.+)", handle)
+    if brand_collection:
+        target_brand = normalize_text(brand_collection.group(1))
+        if target_brand == "apple":
+            return brand == "apple" and not is_primary_device(product)
+        return brand == target_brand
+
+    exact_phrases = {
+        "macbook-air": "macbook air",
+        "macbook-pro": "macbook pro",
+        "mac-mini": "mac mini",
+        "ipad-air": "ipad air",
+        "ipad-pro": "ipad pro",
+        "airpods": "airpods",
+        "airtag": "airtag",
+        "apple-tv": "apple tv",
+    }
+    if handle in exact_phrases:
+        return exact_phrases[handle] in name
+
+    words = [
+        word
+        for word in normalize_text(handle.replace("-", " ")).split()
+        if word not in {"los", "las", "de", "del", "y", "para"}
+    ]
+    return bool(words) and all(word in searchable for word in words)
+
+
+def collection_title(handle: str) -> str:
+    return COLLECTION_TITLES.get(handle, title_from_path(handle))
+
+
+def render_collection_card(product: dict[str, object]) -> str:
+    name = escape(str(product["name"]))
+    product_type = escape(str(product["type"]) or "Producto")
+    path = urlparse(str(product["url"])).path.rstrip("/") + "/"
+    variants = [str(item) for item in product["variants"]]
+    price = escape(product_starting_price(variants))
+    return (
+        '<article class="local-collection__card">'
+        '<div class="local-collection__visual" aria-hidden="true">'
+        f"<span>{product_type}</span></div>"
+        '<div class="local-collection__card-body">'
+        f"<p>{product_type}</p><h2><a href=\"{escape(path, quote=True)}\">{name}</a></h2>"
+        f'<strong>{price}</strong>'
+        f'<a class="local-collection__link" href="{escape(path, quote=True)}">'
+        "Ver detalles</a></div></article>"
+    )
+
+
+def write_catalog_listing(
+    title: str,
+    products: list[dict[str, object]],
+    destination: Path,
+    header: str,
+    footer: str,
+) -> None:
+    matches = sorted(
+        products,
+        key=lambda product: (
+            not is_primary_device(product),
+            normalize_text(product["name"]),
+        ),
+    )
+    page_header = re.sub(
+        r"<title>.*?</title>",
+        f"<title>{escape(title)} | iShop Ecuador</title>",
+        header,
+        count=1,
+        flags=re.I | re.S,
+    )
+    cards = "".join(render_collection_card(product) for product in matches)
+    if not cards:
+        cards = (
+            '<div class="local-collection__empty">'
+            "<h2>No hay productos publicados en esta categoría.</h2>"
+            "<p>El catálogo local se actualiza desde la información pública de iShop.</p>"
+            '<a href="/collections/all/">Ver todos los productos</a></div>'
+        )
+
+    body = f"""
+<main id="main-content" class="local-collection">
+  <div class="local-collection__container">
+    <nav class="local-collection__breadcrumb" aria-label="Migas de pan">
+      <a href="/">Inicio</a><span aria-hidden="true">/</span><span>{escape(title)}</span>
+    </nav>
+    <header class="local-collection__header">
+      <p>Catálogo público de demostración</p>
+      <h1>{escape(title)}</h1>
+      <span>{len(matches)} productos encontrados</span>
+    </header>
+    <section class="local-collection__grid" aria-label="{escape(title)}">
+      {cards}
+    </section>
+  </div>
+</main>
+"""
+    page = f"{page_header}<!-- END sections: header-group -->{body}{footer}"
+    page = "\n".join(line.rstrip() for line in page.splitlines()) + "\n"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(page, encoding="utf-8")
+
+
+def catalog_shell() -> tuple[str, str]:
+    header, footer = load_shell()
+    stylesheet = '<link rel="stylesheet" href="/css/local-collection.css">'
+    if stylesheet not in header:
+        header = re.sub(
+            r"</head>",
+            f"  {stylesheet}\n</head>",
+            header,
+            count=1,
+            flags=re.I,
+        )
+    return header, footer
+
+
+def render_catalog_collection_pages() -> int:
+    products = parse_catalog_products()
+    collections_root = ROOT / "collections"
+    handles = {
+        path.name
+        for path in collections_root.iterdir()
+        if path.is_dir()
+    }
+
+    header, footer = catalog_shell()
+
+    generated = 0
+    for handle in sorted(handles):
+        matches = [
+            product
+            for product in products
+            if product_matches_collection(product, handle)
+        ]
+        title = collection_title(handle)
+        destination = collections_root / handle / "index.html"
+        write_catalog_listing(title, matches, destination, header, footer)
+        generated += 1
+
+    return generated
+
+
+CATALOG_MENU_PAGES: dict[str, tuple[str, tuple[str, ...]]] = {
+    "airpods": ("AirPods", ("airpods",)),
+    "parlantes-y-audifonos": ("Audio", ("parlantes", "audifonos")),
+    "todos-los-accesorios": ("Todos los accesorios", ("accessories",)),
+    "accesorios-para-mac": ("Accesorios para Mac", ("accesorios-para-mac",)),
+    "accesorios-para-iphone": ("Accesorios para iPhone", ("accesorios-para-iphone",)),
+    "accesorios-para-ipad": ("Accesorios para iPad", ("accesorios-para-ipad",)),
+    "accesorios-para-apple-watch": (
+        "Accesorios para Apple Watch",
+        ("accesorios-para-apple-watch",),
+    ),
+    "compara-los-modelos-de-mac": ("Modelos de Mac", ("todos-los-mac",)),
+    "compara-los-modelos-de-ipad": ("Modelos de iPad", ("todos-los-ipad",)),
+    "compara-los-modelos-de-iphone": ("Modelos de iPhone", ("todos-los-iphone",)),
+    "compara-los-modelos-de-watch": (
+        "Modelos de Apple Watch",
+        ("todos-los-apple-watch",),
+    ),
+    "compara-los-modelos-de-airpods": ("Modelos de AirPods", ("airpods",)),
+    "entretenimiento-apple": (
+        "Entretenimiento Apple",
+        ("apple-tv", "airpods", "parlantes", "audifonos"),
+    ),
+    "los-mejores-productos-nco": (
+        "Productos NCO",
+        ("accesorios-de-nco",),
+    ),
+    "creativos-y-pro": (
+        "Soluciones para creativos y profesionales",
+        ("todos-los-mac", "todos-los-ipad"),
+    ),
+    "estudio-y-academia": (
+        "Soluciones para estudio y academia",
+        ("todos-los-mac", "todos-los-ipad"),
+    ),
+    "negocios-y-home-office": (
+        "Soluciones para negocios y home office",
+        ("todos-los-mac", "todos-los-ipad"),
+    ),
+}
+
+
+def render_catalog_menu_pages() -> int:
+    products = parse_catalog_products()
+    header, footer = catalog_shell()
+
+    for slug, (title, handles) in CATALOG_MENU_PAGES.items():
+        if handles == ("accessories",):
+            matches = [product for product in products if not is_primary_device(product)]
+        else:
+            matches = [
+                product
+                for product in products
+                if any(
+                    product_matches_collection(product, handle)
+                    for handle in handles
+                )
+            ]
+        write_catalog_listing(
+            title,
+            matches,
+            ROOT / "pages" / slug / "index.html",
+            header,
+            footer,
+        )
+
+    return len(CATALOG_MENU_PAGES)
+
+
 if __name__ == "__main__":
-    total = render_catalog_product_pages()
-    print(f"Páginas de producto generadas: {total}")
+    product_total = render_catalog_product_pages()
+    collection_total = render_catalog_collection_pages()
+    menu_page_total = render_catalog_menu_pages()
+    print(
+        f"Páginas de producto generadas: {product_total}; "
+        f"colecciones generadas: {collection_total}; "
+        f"páginas de menú generadas: {menu_page_total}"
+    )
