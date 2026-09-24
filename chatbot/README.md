@@ -4,6 +4,10 @@ Proyecto local y gratuito para la demostración de tesis. El cliente habla con
 la IA y con un asesor humano en el mismo widget. El estado de Chatwoot decide
 quién responde.
 
+Para instalar o replicar todo el ambiente en otra computadora, consultar
+`../GUIA-PAUL-ISHOP.pdf`. La versión editable está en
+`../GUIA-PAUL-ISHOP.md`.
+
 ## Arquitectura
 
 ```text

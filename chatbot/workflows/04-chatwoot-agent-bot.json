@@ -133,7 +133,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2700,
+        3360,
         260
       ],
       "parameters": {
@@ -146,7 +146,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2940,
+        3600,
         260
       ],
       "parameters": {
@@ -287,7 +287,7 @@
         360
       ],
       "parameters": {
-        "jsCode": "const event = $('Preparar contexto RAG').first().json;\nconst response = $input.first().json;\nconst normalize = (value) => String(value || '')\n  .normalize('NFD')\n  .replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase()\n  .replace(/\\s+/g, ' ')\n  .trim();\nconst current = normalize(event.content);\nconst categories = new Set(['macbook', 'iphone', 'ipad', 'watch', 'airpods', 'mac_desktop', 'audio', 'accessory']);\n\nconst heuristic = () => {\n  let corrected = String(event.content || '')\n    .replace(/\\bmicrofno\\b/gi, 'micrófono')\n    .replace(/\\brelok\\b|\\brelo\\b/gi, 'reloj Apple Watch')\n    .replace(/\\bmackbook\\b/gi, 'MacBook');\n  let category = '';\n  if (/\\b(macbook|laptop|portatil|notebook)\\b/.test(current)) {\n    category = 'macbook';\n    corrected = corrected.replace(/\\b(laptop|portatil|notebook)\\b/gi, 'MacBook');\n  } else if (/\\b(iphone|celular|telefono)\\b/.test(current)) category = 'iphone';\n  else if (/\\b(ipad|tablet)\\b/.test(current)) category = 'ipad';\n  else if (/\\b(apple watch|relo[jk])\\b/.test(current)) category = 'watch';\n  else if (/\\bairpods?\\b/.test(current)) category = 'airpods';\n  else if (/\\b(imac|mac mini|mac studio)\\b/.test(current)) category = 'mac_desktop';\n  else if (/\\b(audifonos?|auriculares?|parlante|bocina|bose|jbl|beats)\\b/.test(current)) category = 'audio';\n  else if (/\\b(adaptador|cable|cargador|case|funda|teclado|mouse|correa|protector|mochila|airtag|pencil)\\b/.test(current)) category = 'accessory';\n\n  let information_topic = '';\n  if (/\\b(envio|entrega|domicilio)\\b/.test(current)) information_topic = 'shipping';\n  else if (/\\b(pago|tarjeta|cuota|diferido)\\b/.test(current)) information_topic = 'payments';\n  else if (/\\b(garantia|devolucion|cambio)\\b/.test(current)) information_topic = 'warranty';\n  else if (/\\b(servicio tecnico|reparacion|reparar)\\b/.test(current)) information_topic = 'service';\n  else if (/\\b(tienda|local|sucursal)\\b/.test(current)) information_topic = 'stores';\n  else if (/\\b(contacto|telefono|correo)\\b/.test(current)) information_topic = 'contact';\n  else if (/\\b(corporativ|empresa)\\b/.test(current)) information_topic = 'corporate';\n\n  let intent = information_topic ? 'information' : 'product_search';\n  if (/\\b(compar\\w*|diferencias?|opcion 1|opcion 2|versus|vs|contra)\\b/.test(current)) intent = 'compare';\n  else if (/\\b(comprar|lo quiero|me lo llevo|como compro|quiero ese|quiero esa)\\b/.test(current)) intent = 'purchase';\n  else if (/\\b(detalles?|especificaciones|caracteristicas|que trae|que incluye)\\b/.test(current)) intent = 'details';\n\n  const budgetMatch = current.match(/(?:presupuesto|tengo|hasta|maximo)\\D{0,12}(\\d{2,5})\\b/) || current.match(/\\$\\s*(\\d{2,5})\\b/);\n  const unsupported = /\\b(microfono|microfno|impresora|playstation|xbox|consola|laptop windows|computadora windows)\\b/.test(current);\n  return {\n    intent,\n    search_query: corrected,\n    category,\n    budget: budgetMatch ? Number(budgetMatch[1]) : null,\n    in_catalog: unsupported ? false : (category ? true : null),\n    information_topic,\n    refers_previous: /\\b(opcion(es)?|primera|segunda|tercera|esa|ese|esas|esos|anterior(es)?|las dos|los dos)\\b/.test(current),\n    clarifying_question: '',\n    source: 'heuristic',\n  };\n};\n\nlet understanding;\ntry {\n  const parts = response?.candidates?.[0]?.content?.parts || [];\n  const raw = parts.filter((part) => part.text && !part.thought).map((part) => part.text).join('').trim();\n  understanding = JSON.parse(raw.replace(/^```json\\s*|```$/g, '').trim());\n  understanding.source = 'gemini';\n} catch (error) {\n  understanding = heuristic();\n  understanding.geminiError = response?.error?.message || error.message;\n}\n\nunderstanding.intent = String(understanding.intent || 'unclear');\nunderstanding.category = categories.has(understanding.category) ? understanding.category : '';\nunderstanding.search_query = String(understanding.search_query || event.content).trim() || event.content;\nunderstanding.budget = understanding.budget === null || understanding.budget === undefined || understanding.budget === ''\n  ? null\n  : Number(understanding.budget);\nif (!Number.isFinite(understanding.budget)) understanding.budget = null;\nunderstanding.refers_previous = Boolean(understanding.refers_previous);\n\nif (understanding.intent === 'handoff') {\n  return [{ json: { ...event, understanding, skipRag: true, output: 'Te conecto con un asesor de iShop. Sigue en este mismo chat: en un momento te escribe una persona.\\n[[HANDOFF]]' } }];\n}\nif (understanding.intent === 'smalltalk') {\n  return [{ json: { ...event, understanding, skipRag: true, output: 'Puedo ayudarte con productos Apple, comparaciones, precios, envíos, pagos o garantías de iShop. ¿Qué buscas?' } }];\n}\nif (understanding.intent === 'unclear') {\n  return [{ json: { ...event, understanding, skipRag: true, output: understanding.clarifying_question || 'Cuéntame qué producto buscas o qué duda tienes sobre compras, envíos, pagos o garantías de iShop.' } }];\n}\nif (understanding.in_catalog === false) {\n  return [{ json: {\n    ...event,\n    understanding,\n    skipRag: true,\n    output: `No encontré “${understanding.search_query}” como producto en el catálogo actual de iShop. Puedo ayudarte con Mac, iPhone, iPad, Apple Watch, AirPods, audio y accesorios, o conectarte con un asesor.`,\n  } }];\n}\n\nconst isInformation = understanding.intent === 'information' || Boolean(understanding.information_topic);\nconst must = [{ key: 'doc_kind', match: { value: isInformation ? 'information' : 'product' } }];\nconst urls = [...new Set(String(event.conversationText || '').match(/https:\\/\\/ec\\.tiendasishop\\.com\\/products\\/[a-z0-9\\-]+/gi) || [])];\nif (!isInformation && understanding.refers_previous && urls.length) {\n  must.push({ key: 'url', match: { any: urls.slice(-3) } });\n} else if (!isInformation && understanding.category) {\n  must.push({ key: 'category', match: { value: understanding.category } });\n}\nreturn [{ json: {\n  ...event,\n  understanding,\n  skipRag: false,\n  searchQuery: understanding.search_query,\n  qdrantFilter: { must },\n  isInformation,\n} }];"
+        "jsCode": "const event = $('Preparar contexto RAG').first().json;\nconst response = $input.first().json;\nconst normalize = (value) => String(value || '')\n  .normalize('NFD')\n  .replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase()\n  .replace(/\\s+/g, ' ')\n  .trim();\nconst current = normalize(event.content);\nconst categories = new Set(['macbook', 'iphone', 'ipad', 'watch', 'airpods', 'mac_desktop', 'audio', 'accessory']);\n\nconst heuristic = () => {\n  let corrected = String(event.content || '')\n    .replace(/\\bmicrofno\\b/gi, 'micrófono')\n    .replace(/\\brelok\\b|\\brelo\\b/gi, 'reloj Apple Watch')\n    .replace(/\\bmackbook\\b/gi, 'MacBook');\n  let category = '';\n  if (/\\b(adaptador|cable|cargador|case|funda|teclado|mouse|correa|protector|mochila|airtag|pencil)\\b/.test(current)) {\n    category = 'accessory';\n  } else if (/\\b(macbook|laptop|portatil|notebook)\\b/.test(current)) {\n    category = 'macbook';\n    corrected = corrected.replace(/\\b(laptop|portatil|notebook)\\b/gi, 'MacBook');\n  } else if (/\\b(iphone|celular|telefono)\\b/.test(current)) category = 'iphone';\n  else if (/\\b(ipad|tablet)\\b/.test(current)) category = 'ipad';\n  else if (/\\b(apple watch|relo[jk])\\b/.test(current)) category = 'watch';\n  else if (/\\bairpods?\\b/.test(current)) category = 'airpods';\n  else if (/\\b(imac|mac mini|mac studio)\\b/.test(current)) category = 'mac_desktop';\n  else if (/\\b(audifonos?|auriculares?|parlante|bocina|bose|jbl|beats)\\b/.test(current)) category = 'audio';\n\n  let information_topic = '';\n  if (/\\b(envio|entrega|domicilio)\\b/.test(current)) information_topic = 'shipping';\n  else if (/\\b(pago|tarjeta|cuota|diferido)\\b/.test(current)) information_topic = 'payments';\n  else if (/\\b(garantia|devolucion|cambio)\\b/.test(current)) information_topic = 'warranty';\n  else if (/\\b(servicio tecnico|reparacion|reparar)\\b/.test(current)) information_topic = 'service';\n  else if (/\\b(tienda|local|sucursal)\\b/.test(current)) information_topic = 'stores';\n  else if (/\\b(contacto|telefono|correo)\\b/.test(current)) information_topic = 'contact';\n  else if (/\\b(corporativ|empresa)\\b/.test(current)) information_topic = 'corporate';\n\n  let intent = information_topic ? 'information' : 'product_search';\n  if (/\\b(compar\\w*|diferencias?|opcion 1|opcion 2|versus|vs|contra)\\b/.test(current)) intent = 'compare';\n  else if (/\\b(comprar|lo quiero|me lo llevo|como compro|quiero ese|quiero esa)\\b/.test(current)) intent = 'purchase';\n  else if (/\\b(detalles?|especificaciones|caracteristicas|que trae|que incluye)\\b/.test(current)) intent = 'details';\n\n  const budgetMatch = current.match(/(?:presupuesto|tengo|hasta|maximo)\\D{0,12}(\\d{2,5})\\b/) || current.match(/\\$\\s*(\\d{2,5})\\b/);\n  const unsupported = /\\b(microfono|microfno|impresora|playstation|xbox|consola|laptop windows|computadora windows)\\b/.test(current);\n  return {\n    intent,\n    search_query: corrected,\n    category,\n    budget: budgetMatch ? Number(budgetMatch[1]) : null,\n    in_catalog: unsupported ? false : (category ? true : null),\n    information_topic,\n    refers_previous: /\\b(opcion(es)?|primera|segunda|tercera|esa|ese|esas|esos|anterior(es)?|las dos|los dos)\\b/.test(current),\n    clarifying_question: '',\n    source: 'heuristic',\n  };\n};\n\nlet understanding;\ntry {\n  const parts = response?.candidates?.[0]?.content?.parts || [];\n  const raw = parts.filter((part) => part.text && !part.thought).map((part) => part.text).join('').trim();\n  understanding = JSON.parse(raw.replace(/^```json\\s*|```$/g, '').trim());\n  understanding.source = 'gemini';\n} catch (error) {\n  understanding = heuristic();\n  understanding.geminiError = response?.error?.message || error.message;\n}\n\nunderstanding.intent = String(understanding.intent || 'unclear');\nunderstanding.category = categories.has(understanding.category) ? understanding.category : '';\nunderstanding.search_query = String(understanding.search_query || event.content).trim() || event.content;\nunderstanding.budget = understanding.budget === null || understanding.budget === undefined || understanding.budget === ''\n  ? null\n  : Number(understanding.budget);\nif (!Number.isFinite(understanding.budget)) understanding.budget = null;\nunderstanding.refers_previous = Boolean(understanding.refers_previous);\n\nif (understanding.intent === 'handoff') {\n  return [{ json: { ...event, understanding, skipRag: true, output: 'Te conecto con un asesor de iShop. Sigue en este mismo chat: en un momento te escribe una persona.\\n[[HANDOFF]]' } }];\n}\nif (understanding.intent === 'smalltalk') {\n  return [{ json: { ...event, understanding, skipRag: true, output: 'Puedo ayudarte con productos Apple, comparaciones, precios, envíos, pagos o garantías de iShop. ¿Qué buscas?' } }];\n}\nif (understanding.intent === 'unclear') {\n  return [{ json: { ...event, understanding, skipRag: true, output: understanding.clarifying_question || 'Cuéntame qué producto buscas o qué duda tienes sobre compras, envíos, pagos o garantías de iShop.' } }];\n}\nif (understanding.in_catalog === false) {\n  return [{ json: {\n    ...event,\n    understanding,\n    skipRag: true,\n    output: `No encontré “${understanding.search_query}” como producto en el catálogo actual de iShop. Puedo ayudarte con Mac, iPhone, iPad, Apple Watch, AirPods, audio y accesorios, o conectarte con un asesor.`,\n  } }];\n}\n\nconst isInformation = understanding.intent === 'information' || Boolean(understanding.information_topic);\nconst must = [{ key: 'doc_kind', match: { value: isInformation ? 'information' : 'product' } }];\nconst urls = [...new Set(String(event.conversationText || '').match(/https:\\/\\/ec\\.tiendasishop\\.com\\/products\\/[a-z0-9\\-]+/gi) || [])];\nif (!isInformation && understanding.refers_previous && urls.length) {\n  must.push({ key: 'url', match: { any: urls.slice(-3) } });\n} else if (!isInformation && understanding.category) {\n  must.push({ key: 'category', match: { value: understanding.category } });\n}\nreturn [{ json: {\n  ...event,\n  understanding,\n  skipRag: false,\n  searchQuery: understanding.search_query,\n  qdrantFilter: { must },\n  isInformation,\n} }];"
       }
     },
     {
@@ -386,6 +386,70 @@
       ],
       "parameters": {
         "jsCode": "const context = $('Interpretar intención').first().json;\nconst understanding = context.understanding || {};\nconst normalize = (value) => String(value || '')\n  .normalize('NFD')\n  .replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase();\nconst rows = $input.all().map((item) => item.json);\nconst documents = rows.map((row) => ({\n  content: String(row.document?.pageContent || ''),\n  score: Number(row.score || 0),\n})).filter((document) => document.content);\n\nif (context.isInformation) {\n  if (!documents.length) {\n    return [{ json: { ...context, output: 'No encontré información suficiente en la base pública de iShop. Puedes reformular la pregunta o escribir “quiero un asesor”.' } }];\n  }\n  const queryWords = normalize(context.searchQuery).split(/[^a-z0-9]+/).filter((word) => word.length > 3);\n  const sentences = documents\n    .map((document) => document.content)\n    .join('\\n')\n    .split(/(?<=[.!?])\\s+|\\n+/)\n    .map((sentence) => sentence.trim())\n    .filter((sentence) => sentence && queryWords.some((word) => normalize(sentence).includes(word)));\n  const output = [...new Set(sentences)].slice(0, 6).join(' ').slice(0, 1200)\n    || documents[0].content.slice(0, 1200);\n  return [{ json: { ...context, output } }];\n}\n\nconst field = (content, label) => {\n  const match = content.match(new RegExp(`^${label}:\\\\s*(.+)$`, 'mi'));\n  return match ? match[1].trim() : '';\n};\nconst products = documents.map((document) => {\n  const content = document.content;\n  const variantsMatch = content.match(/Variantes disponibles:\\s*([\\s\\S]*?)\\nDescripción:/i);\n  return {\n    title: field(content, 'Producto'),\n    url: field(content, 'URL'),\n    type: field(content, 'Tipo'),\n    price: Number((field(content, 'Precio desde').match(/[\\d.]+/) || [0])[0]),\n    variants: variantsMatch ? variantsMatch[1].trim() : '',\n    description: field(content, 'Descripción'),\n    score: document.score,\n  };\n}).filter((product) => product.title && product.url && product.price > 0);\n\nconst queryWords = normalize(context.searchQuery).split(/[^a-z0-9]+/).filter((word) => word.length > 2);\nproducts.forEach((product) => {\n  const title = normalize(product.title);\n  product.rank = product.score * 10 + queryWords.filter((word) => title.includes(word)).length * 2;\n});\nlet ranked = [...products];\nconst budget = understanding.budget;\nconst previousUrls = [...new Set(String(context.conversationText || '').match(/https:\\/\\/ec\\.tiendasishop\\.com\\/products\\/[a-z0-9\\-]+/gi) || [])].slice(-3);\nif (understanding.refers_previous && previousUrls.length) {\n  ranked.sort((a, b) => previousUrls.indexOf(a.url) - previousUrls.indexOf(b.url));\n} else if (budget !== null && budget !== undefined) {\n  const within = ranked.filter((product) => product.price <= budget).sort((a, b) => b.rank - a.rank);\n  const above = ranked.filter((product) => product.price > budget).sort((a, b) => a.price - b.price || b.rank - a.rank);\n  ranked = [...within, ...above];\n} else {\n  ranked.sort((a, b) => b.rank - a.rank);\n}\nranked = ranked.slice(0, 3);\n\nif (!ranked.length || (!understanding.category && !understanding.refers_previous && ranked[0].score < 0.6)) {\n  return [{ json: {\n    ...context,\n    output: `No encontré “${understanding.search_query || context.content}” como producto en el catálogo actual de iShop. Puedes reformular la búsqueda o escribir “quiero un asesor”.`,\n  } }];\n}\n\nif (understanding.intent === 'compare' && ranked.length >= 2) {\n  const [first, second] = ranked;\n  const firstVariant = first.variants.split('\\n')[0] || 'Características no detalladas en la ficha';\n  const secondVariant = second.variants.split('\\n')[0] || 'Características no detalladas en la ficha';\n  const difference = Math.abs(first.price - second.price);\n  let recommendation = first.price <= second.price\n    ? `${first.title} cuesta $${Math.round(difference)} menos.`\n    : `${second.title} cuesta $${Math.round(difference)} menos.`;\n  if (budget !== null && budget !== undefined) {\n    const inside = [first, second].filter((product) => product.price <= budget);\n    recommendation = inside.length\n      ? `Para tu presupuesto de $${budget}, recomiendo ${inside.sort((a, b) => b.rank - a.rank)[0].title}.`\n      : `Ninguna entra en tu presupuesto de $${budget}; la más cercana es ${[first, second].sort((a, b) => a.price - b.price)[0].title}.`;\n  }\n  const output = [\n    'Comparación entre las opciones 1 y 2:',\n    '',\n    `1. ${first.title} — desde $${Math.round(first.price)}`,\n    `   ${firstVariant}`,\n    `   ${first.url}`,\n    `2. ${second.title} — desde $${Math.round(second.price)}`,\n    `   ${secondVariant}`,\n    `   ${second.url}`,\n    '',\n    recommendation,\n    'Los precios y la disponibilidad pueden cambiar.',\n  ].join('\\n');\n  return [{ json: { ...context, output } }];\n}\n\nif (understanding.intent === 'purchase' && ranked.length) {\n  const product = ranked[0];\n  return [{ json: {\n    ...context,\n    output: `${product.title} está publicado desde $${Math.round(product.price)}.\\n\\nVer producto y comprar:\\n${product.url}\\n\\nLa compra y el pago se completan en la ficha. Los precios y la disponibilidad pueden cambiar.`,\n  } }];\n}\n\nif (understanding.intent === 'details' && ranked.length) {\n  const product = ranked[0];\n  const variants = product.variants.split('\\n').slice(0, 3).join('\\n');\n  return [{ json: {\n    ...context,\n    output: `${product.title} — desde $${Math.round(product.price)}\\n\\n${product.description || 'La ficha no detalla una descripción adicional.'}${variants ? `\\n\\nVariantes:\\n${variants}` : ''}\\n\\n${product.url}\\n\\nLos precios y la disponibilidad pueden cambiar.`,\n  } }];\n}\n\nconst list = ranked.map((product) => {\n  const over = budget !== null && budget !== undefined && product.price > budget ? ' (supera tu presupuesto)' : '';\n  return `• ${product.title} — desde $${Math.round(product.price)}${over}\\n  ${product.url}`;\n}).join('\\n');\nlet intro = 'Estas son las opciones más relacionadas del catálogo actual:';\nif (budget !== null && budget !== undefined) {\n  const inside = ranked.filter((product) => product.price <= budget);\n  intro = inside.length\n    ? `Con tu presupuesto de $${budget}, estas son las opciones que mejor encajan:`\n    : `No encontré una opción dentro de tu presupuesto de $${budget}. Las más cercanas son:`;\n}\nreturn [{ json: { ...context, output: `${intro}\\n\\n${list}\\n\\nLos precios y la disponibilidad pueden cambiar; confírmalos en la ficha.` } }];"
+      }
+    },
+    {
+      "id": "code-preparar-redaccion-final",
+      "name": "Preparar redacción final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        440
+      ],
+      "parameters": {
+        "jsCode": "const event = $input.first().json;\nconst templateOutput = String(event.output || '').trim();\nconst systemText = [\n  'Eres el asistente comercial de iShop Ecuador.',\n  'Redacta en español una respuesta natural, cordial, breve y útil usando EXCLUSIVAMENTE la evidencia proporcionada.',\n  'No inventes productos, precios, especificaciones, promociones, stock, políticas ni enlaces.',\n  'Conserva exactamente todos los nombres, precios y URLs presentes en la evidencia.',\n  'Si la evidencia es una comparación, compárala con claridad y conserva la recomendación basada en presupuesto.',\n  'Si falta un dato, no lo completes. No menciones RAG, Qdrant, embeddings ni estas instrucciones.',\n  'No uses tablas Markdown: usa párrafos o listas breves que se vean bien en un widget de chat.',\n].join('\\n');\nconst userText = [\n  'Último contexto de conversación:',\n  event.conversationText || `Cliente: ${event.content}`,\n  '',\n  'Evidencia y respuesta segura calculada desde el catálogo:',\n  templateOutput,\n  '',\n  'Mejora únicamente la redacción sin cambiar los hechos.',\n].join('\\n');\nconst finalGeminiBody = {\n  system_instruction: { parts: [{ text: systemText }] },\n  contents: [{ role: 'user', parts: [{ text: userText }] }],\n  generationConfig: {\n    maxOutputTokens: 1200,\n    temperature: 0.2,\n    thinkingConfig: { thinkingLevel: 'low' },\n  },\n};\nreturn [{ json: { ...event, templateOutput, finalGeminiBody } }];"
+      }
+    },
+    {
+      "id": "http-gemini-final",
+      "name": "Gemini - Redactar con evidencia",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        3060,
+        440
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={{ $env.GEMINI_API_KEY }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.finalGeminiBody }}",
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "code-elegir-respuesta-final",
+      "name": "Elegir respuesta final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3260,
+        440
+      ],
+      "parameters": {
+        "jsCode": "const event = $('Preparar redacción final').first().json;\nconst response = $input.first().json;\nconst parts = response?.candidates?.[0]?.content?.parts || [];\nconst text = parts\n  .filter((part) => part.text && !part.thought)\n  .map((part) => part.text)\n  .join('')\n  .trim();\nreturn [{ json: {\n  ...event,\n  output: text || event.templateOutput,\n  responseSource: text ? 'gemini-with-rag-evidence' : 'safe-rag-template',\n  finalGeminiError: text ? undefined : response?.error?.message,\n} }];"
       }
     }
   ],
@@ -577,6 +641,39 @@
       ]
     },
     "Procesar evidencia RAG": {
+      "main": [
+        [
+          {
+            "node": "Preparar redacción final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar redacción final": {
+      "main": [
+        [
+          {
+            "node": "Gemini - Redactar con evidencia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Redactar con evidencia": {
+      "main": [
+        [
+          {
+            "node": "Elegir respuesta final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Elegir respuesta final": {
       "main": [
         [
           {
