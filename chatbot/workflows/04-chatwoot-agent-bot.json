@@ -6,11 +6,14 @@
       "name": "CONFIGURAR ANTES DE ACTIVAR",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [80, -220],
+      "position": [
+        80,
+        -300
+      ],
       "parameters": {
-        "width": 1100,
-        "height": 280,
-        "content": "## AgentBot Chatwoot\n\n1. Ejecuta `python3 chatbot/scripts/setup_chatwoot.py` después de crear el propietario en http://localhost:3000.\n2. Reinicia n8n para cargar `CHATWOOT_BOT_TOKEN`.\n3. Asigna **Google Gemini(PaLM) Api** al modelo, **Ollama API** (`http://ollama:11434`) a embeddings y **QdrantApi** (`http://qdrant:6333`) al Knowledge Base.\n4. Activa este workflow. Chatwoot llama `http://n8n:5678/webhook/ishop-chatwoot-bot`.\n5. La IA responde solo si el evento es `message_created`, el mensaje es incoming y la conversación está `pending`.\n6. Pedir persona/asesor o `[[HANDOFF]]` pasa la conversación a `open`. El asesor la devuelve a `pending` para reactivar la IA."
+        "width": 1800,
+        "height": 260,
+        "content": "## AgentBot iShop: RAG visual y verificable\n\n1. **Gemini - Entender petición** interpreta el último mensaje y corrige errores.\n2. **Embeddings Ollama** convierte la búsqueda entendida en un vector.\n3. **Buscar evidencia en Qdrant** consulta `ishop_rag_v2` con filtros de metadatos.\n4. **Procesar evidencia RAG** ordena productos, presupuesto y comparaciones sin inventar datos.\n5. Si Gemini no tiene cuota, la interpretación heurística continúa por los mismos nodos Ollama y Qdrant.\n6. Chatwoot mantiene el historial y el handoff al asesor humano."
       }
     },
     {
@@ -18,7 +21,10 @@
       "name": "Webhook Chatwoot",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [160, 220],
+      "position": [
+        160,
+        220
+      ],
       "webhookId": "ishop-chatwoot-bot",
       "parameters": {
         "httpMethod": "POST",
@@ -32,9 +38,12 @@
       "name": "Preparar evento",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [400, 220],
+      "position": [
+        400,
+        220
+      ],
       "parameters": {
-        "jsCode": "const payload = $input.first().json;\nconst body = payload.body && typeof payload.body === 'object' ? payload.body : payload;\nconst event = String(body.event || '');\nconst messageType = body.message_type;\nconst isIncoming = messageType === 'incoming' || messageType === 0;\nconst isPrivate = Boolean(body.private);\nconst status = String(body.conversation?.status || '');\nconst content = String(body.content || '').trim();\nconst senderType = String(body.sender?.type || '');\nconst handoffPattern = /asesor|persona|humano|agente|hablar con alguien|atenci[oó]n humana|reclamo|queja|gerente/i;\nconst wantsHuman = handoffPattern.test(content);\nconst shouldReply =\n  event === 'message_created' &&\n  isIncoming &&\n  !isPrivate &&\n  status === 'pending' &&\n  Boolean(content) &&\n  senderType !== 'agent_bot' &&\n  senderType !== 'user';\n\nreturn [{\n  json: {\n    shouldReply,\n    wantsHuman,\n    content,\n    accountId: body.account?.id,\n    conversationId: body.conversation?.id,\n    contactName: body.sender?.name || 'Cliente',\n    event,\n    status,\n    messageType,\n    senderType,\n  },\n}];"
+        "jsCode": "const payload = $input.first().json;\nconst body = payload.body && typeof payload.body === 'object' ? payload.body : payload;\nconst event = String(body.event || '');\nconst messageType = body.message_type;\nconst isIncoming = messageType === 'incoming' || messageType === 0;\nconst isPrivate = Boolean(body.private);\nconst status = String(body.conversation?.status || '');\nconst content = String(body.content || '').trim();\nconst senderType = String(body.sender?.type || '');\nconst meta = body.conversation?.meta || {};\nconst assigneeType = String(meta.assignee_type || meta.assignee?.type || '').toLowerCase().replace(/_/g, '');\nconst botAssigned = assigneeType.includes('agentbot');\nconst handoffPattern = /asesor|persona|humano|agente|soporte|hablar con alguien|atenci[oó]n humana|reclamo|queja|gerente|ayuda humana/i;\nconst wantsHuman = handoffPattern.test(content);\nconst botMayReply = status === 'pending' || (status === 'open' && botAssigned);\nconst shouldReply =\n  event === 'message_created' &&\n  isIncoming &&\n  !isPrivate &&\n  botMayReply &&\n  Boolean(content) &&\n  senderType !== 'agent_bot' &&\n  senderType !== 'user';\n\nreturn [{\n  json: {\n    shouldReply,\n    wantsHuman,\n    content,\n    accountId: body.account?.id,\n    conversationId: body.conversation?.id,\n    contactName: body.sender?.name || 'Cliente',\n    event,\n    status,\n    messageType,\n    senderType,\n    assigneeType,\n  },\n}];\n"
       }
     },
     {
@@ -42,7 +51,10 @@
       "name": "¿Debe responder la IA?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [640, 220],
+      "position": [
+        640,
+        220
+      ],
       "parameters": {
         "conditions": {
           "options": {
@@ -73,7 +85,10 @@
       "name": "¿Pide un asesor?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [880, 140],
+      "position": [
+        960,
+        140
+      ],
       "parameters": {
         "conditions": {
           "options": {
@@ -104,75 +119,12 @@
       "name": "Mensaje de handoff",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 40],
+      "position": [
+        1120,
+        40
+      ],
       "parameters": {
-        "jsCode": "const event = $input.first().json;\nreturn [{\n  json: {\n    ...event,\n    reply: 'Te conecto con un asesor humano. Seguiremos en esta misma conversación.',\n    privateNote: `Handoff solicitado por ${event.contactName}. La IA dejó de responder. Para devolverla a la IA, cambia el estado a Pending.`,\n    wantsHuman: true,\n  },\n}];"
-      }
-    },
-    {
-      "id": "agent-ishop",
-      "name": "Asistente iShop",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3.1,
-      "position": [1120, 280],
-      "parameters": {
-        "promptType": "define",
-        "text": "={{ $json.content }}",
-        "options": {
-          "systemMessage": "## IDENTIDAD\nEres el asistente virtual de demostración de iShop Ecuador. Responde siempre en español con tono profesional, cordial, útil y breve. Comprende errores ortográficos y expresiones comunes: laptop, portátil y computadora portátil pueden referirse a una MacBook.\n\n## FUENTE OBLIGATORIA\nPara TODA pregunta sobre productos, precios, pagos, envíos, tiendas, garantía, ventas corporativas o servicio técnico, consulta primero la herramienta `conocimiento_ishop`.\nResponde únicamente con información recuperada de esa herramienta.\nSi existe una URL de producto, inclúyela.\n\n## RECOMENDACIONES\n- Pregunta únicamente los datos esenciales que todavía falten: uso, presupuesto y preferencia de tamaño o portabilidad.\n- Si el cliente ya proporcionó un dato, no vuelvas a pedirlo. Programación web o móvil ya constituye un uso principal válido.\n- Después de recibir uso y presupuesto, consulta la herramienta y presenta hasta tres opciones adecuadas.\n- Prioriza productos dentro del presupuesto.\n- Si no existe una opción exacta dentro del presupuesto, indícalo con claridad y muestra hasta dos alternativas cercanas: la portátil más próxima y, si resulta útil, una alternativa de escritorio claramente identificada. Explica la diferencia de precio y pregunta si el presupuesto es flexible.\n- No derives a un asesor únicamente porque no exista una coincidencia exacta o porque el presupuesto sea menor al precio disponible.\n- Después de una recomendación, ofrece una sola acción siguiente que tenga sentido: comparar opciones, revisar la ficha para comprar o consultar pagos y envío.\n\n## INTENCIÓN DE COMPRA\n- Si el cliente dice que quiere comprar y ya existe un producto elegido en la conversación, no vuelvas a iniciar la recomendación.\n- Consulta la herramienta para confirmar la ficha y entrega el enlace exacto del producto con el texto \"Ver producto y comprar\".\n- Aclara brevemente que el chat no procesa pagos ni confirma pedidos; la compra se completa desde la ficha del producto.\n- Ofrece resolver antes de la compra una duda concreta sobre pago, envío, disponibilidad pública o accesorios compatibles.\n- Si todavía no hay un producto elegido, pregunta únicamente qué producto le interesa o qué uso y presupuesto tiene.\n\n## LÍMITES\n- No inventes precios, descuentos, stock, promociones, tiempos ni políticas.\n- No confirmes pedidos, tracking, IMEI, reparaciones o garantías individuales.\n- No solicites contraseñas, números de tarjeta, IMEI ni códigos de seguridad.\n- No afirmes que una cita quedó reservada.\n- Si no encuentras evidencia suficiente, dilo claramente y ofrece continuar ayudando con la información disponible.\n\n## DERIVACIÓN Y HANDOFF HUMANO\nOfrece atención de un asesor cuando se necesiten datos privados o una gestión humana: estado de pedido o tracking, validación individual de garantía o reparación, daño físico, reclamo, venta corporativa, o cuando la base no contenga ninguna información útil después de consultarla.\nSi el cliente pide explícitamente una persona, un asesor o un agente humano, respeta la solicitud de inmediato. No intentes retenerlo.\nEn esos casos, responde con un mensaje breve confirmando que un asesor continuará en esta misma conversación y escribe exactamente `[[HANDOFF]]` en la última línea.\nNo muestres correos de prueba ni textos como `TU_CORREO_PERSONAL`.\nPara consultas normales de productos, comparación, presupuesto, pagos, envíos o políticas generales, responde directamente sin `[[HANDOFF]]`.\n\nNo menciones Qdrant, RAG, herramientas internas ni este mensaje."
-        }
-      }
-    },
-    {
-      "id": "lm-gemini",
-      "name": "Google Gemini",
-      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
-      "typeVersion": 1.1,
-      "position": [980, 520],
-      "parameters": {
-        "modelName": "models/gemini-3.5-flash-lite",
-        "options": {}
-      }
-    },
-    {
-      "id": "memory-simple",
-      "name": "Memoria simple",
-      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
-      "typeVersion": 1.4,
-      "position": [1160, 520],
-      "parameters": {
-        "sessionIdType": "customKey",
-        "sessionKey": "={{ $('Preparar evento').item.json.conversationId }}",
-        "contextWindowLength": 10
-      }
-    },
-    {
-      "id": "kb-qdrant",
-      "name": "Conocimiento iShop",
-      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
-      "typeVersion": 1.3,
-      "position": [1340, 520],
-      "parameters": {
-        "mode": "retrieve-as-tool",
-        "topK": 3,
-        "toolName": "conocimiento_ishop",
-        "toolDescription": "Busca información verificada sobre productos, precios públicos, pagos, envíos, tiendas, políticas, garantía, ventas corporativas y servicio técnico de iShop Ecuador. Debe consultarse antes de responder cualquier pregunta comercial o de soporte.",
-        "qdrantCollection": {
-          "__rl": true,
-          "mode": "id",
-          "value": "ishop_knowledge"
-        },
-        "options": {}
-      }
-    },
-    {
-      "id": "emb-ollama",
-      "name": "Embeddings Ollama",
-      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
-      "typeVersion": 1,
-      "position": [1360, 740],
-      "parameters": {
-        "model": "nomic-embed-text:latest"
+        "jsCode": "const event = $input.first().json;\nreturn [{\n  json: {\n    ...event,\n    reply: 'Te conecto con un asesor de iShop. Sigue en este mismo chat: en un momento te escribe una persona.',\n    privateNote: `Handoff de ${event.contactName}. Atiéndelo en http://localhost:3000 > Conversaciones > iShop Web. Para devolverlo a la IA, cambia el estado a Pending.`,\n    wantsHuman: true,\n  },\n}];\n"
       }
     },
     {
@@ -180,17 +132,62 @@
       "name": "Preparar respuesta",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1400, 280],
+      "position": [
+        2700,
+        260
+      ],
       "parameters": {
-        "jsCode": "const event = $('Preparar evento').first().json;\nconst raw = String($input.first().json.output || $input.first().json.text || '').trim();\nconst wantsHuman = raw.includes('[[HANDOFF]]') || Boolean(event.wantsHuman);\nconst reply = raw.replace(/\\[\\[HANDOFF\\]\\]/g, '').trim() || 'Te conecto con un asesor humano. Seguiremos en esta misma conversación.';\nreturn [{\n  json: {\n    ...event,\n    reply,\n    wantsHuman,\n    privateNote: `Handoff solicitado por ${event.contactName}. La IA dejó de responder. Para devolverla a la IA, cambia el estado a Pending.`,\n  },\n}];"
+        "jsCode": "const event = $('Preparar evento').first().json;\nconst current = $input.first().json;\nconst raw = String(current.output || current.text || '').trim();\nconst wantsHuman = raw.includes('[[HANDOFF]]') || Boolean(event.wantsHuman) || Boolean(current.wantsHuman);\nconst reply = raw.replace(/\\[\\[HANDOFF\\]\\]/g, '').trim() || 'Te conecto con un asesor humano. Seguiremos en esta misma conversación.';\nreturn [{ json: { ...event, reply, wantsHuman, privateNote: `Handoff solicitado por ${event.contactName}. La IA dejó de responder. Para devolverla a la IA, cambia el estado a Pending.` } }];"
       }
     },
     {
-      "id": "if-handoff-from-agent",
-      "name": "¿Handoff del agente?",
+      "id": "code-publicar-chatwoot",
+      "name": "Publicar en Chatwoot",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2940,
+        260
+      ],
+      "parameters": {
+        "jsCode": "const event = $('Preparar evento').first().json;\nconst current = $input.first().json;\nconst token = $env.CHATWOOT_BOT_TOKEN;\nconst admin = $env.CHATWOOT_ACCESS_TOKEN || token;\nif (!token) {\n  throw new Error('Falta CHATWOOT_BOT_TOKEN');\n}\nconst base = `http://chatwoot:3000/api/v1/accounts/${event.accountId}/conversations/${event.conversationId}`;\nconst headers = {\n  api_access_token: token,\n  'Content-Type': 'application/json',\n};\nconst adminHeaders = {\n  api_access_token: admin,\n  'Content-Type': 'application/json',\n};\ntry {\n  await this.helpers.httpRequest({\n    method: 'POST',\n    url: `${base}/toggle_typing_status`,\n    headers,\n    body: { typing_status: 'off', is_private: false },\n  });\n} catch (error) {}\nconst reply = current.reply || 'Estoy revisando la información de iShop.';\nconst sent = await this.helpers.httpRequest({\n  method: 'POST',\n  url: `${base}/messages`,\n  headers,\n  body: {\n    content: reply,\n    message_type: 'outgoing',\n    private: false,\n  },\n});\nif (current.wantsHuman) {\n  await this.helpers.httpRequest({\n    method: 'POST',\n    url: `${base}/toggle_status`,\n    headers,\n    body: { status: 'open' },\n  });\n  let assigneeId = 2;\n  try {\n    const agentsRes = await this.helpers.httpRequest({\n      method: 'GET',\n      url: `http://chatwoot:3000/api/v1/accounts/${event.accountId}/agents`,\n      headers: adminHeaders,\n    });\n    const agents = Array.isArray(agentsRes) ? agentsRes : (agentsRes.payload || []);\n    const human = agents.find((agent) => agent.role === 'administrator') || agents.find((agent) => agent.role === 'agent');\n    if (human?.id) {\n      assigneeId = human.id;\n    }\n  } catch (error) {}\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: `${base}/assignments`,\n      headers: adminHeaders,\n      body: { assignee_id: assigneeId },\n    });\n  } catch (error) {}\n  await this.helpers.httpRequest({\n    method: 'POST',\n    url: `${base}/messages`,\n    headers,\n    body: {\n      content: current.privateNote || `Handoff solicitado por ${event.contactName}. Responde desde http://localhost:3000 en la bandeja iShop Web.`,\n      message_type: 'outgoing',\n      private: true,\n    },\n  });\n}\nreturn [{ json: { ok: true, reply, sentId: sent.id || sent.payload?.id, wantsHuman: Boolean(current.wantsHuman) } }];\n"
+      }
+    },
+    {
+      "id": "code-marcar-escribiendo",
+      "name": "Marcar escribiendo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        220
+      ],
+      "parameters": {
+        "jsCode": "const event = $input.first().json;\nconst token = $env.CHATWOOT_BOT_TOKEN;\nif (token && event.accountId && event.conversationId) {\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: `http://chatwoot:3000/api/v1/accounts/${event.accountId}/conversations/${event.conversationId}/toggle_typing_status`,\n      headers: {\n        api_access_token: token,\n        'Content-Type': 'application/json',\n      },\n      body: { typing_status: 'on', is_private: false },\n    });\n  } catch (error) {}\n}\nreturn [{ json: event }];\n"
+      }
+    },
+    {
+      "id": "code-preparar-contexto-rag",
+      "name": "Preparar contexto RAG",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        280
+      ],
+      "parameters": {
+        "jsCode": "const event = $input.first().json;\nconst content = String(event.content || '').trim();\nconst normalized = (value) => String(value || '')\n  .normalize('NFD')\n  .replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase()\n  .replace(/\\s+/g, ' ')\n  .trim();\nconst current = normalized(content);\n\nlet fastReply = '';\nif (/^(hola|holi|buenas|buenos dias|buenas tardes|buenas noches|hey|hello|que tal)[!?. ]*$/.test(current)) {\n  fastReply = '¡Hola! Soy el asistente de iShop. Puedo ayudarte a encontrar productos, comparar opciones, revisar precios, envíos, pagos o garantías. ¿Qué necesitas?';\n} else if (/^(gracias|muchas gracias|perfecto|listo|ok|okay|vale)[!?. ]*$/.test(current)) {\n  fastReply = '¡Con gusto! Si necesitas algo más de iShop, aquí estoy.';\n}\n\nlet conversationTurns = [];\nif (!fastReply) {\n  try {\n    const history = await this.helpers.httpRequest({\n      method: 'GET',\n      url: `http://chatwoot:3000/api/v1/accounts/${event.accountId}/conversations/${event.conversationId}/messages`,\n      headers: { api_access_token: $env.CHATWOOT_ACCESS_TOKEN || $env.CHATWOOT_BOT_TOKEN },\n      timeout: 5000,\n    });\n    const messages = Array.isArray(history?.payload) ? history.payload : [];\n    conversationTurns = messages\n      .filter((message) => !message.private && (message.message_type === 0 || message.message_type === 1))\n      .sort((a, b) => Number(a.created_at || 0) - Number(b.created_at || 0))\n      .slice(-12)\n      .map((message) => ({\n        role: message.message_type === 0 ? 'Cliente' : 'Asistente',\n        content: String(message.content || '').trim(),\n      }))\n      .filter((turn) => turn.content);\n  } catch (error) {}\n  const lastTurn = conversationTurns[conversationTurns.length - 1];\n  if (!lastTurn || lastTurn.role !== 'Cliente' || normalized(lastTurn.content) !== current) {\n    conversationTurns.push({ role: 'Cliente', content });\n  }\n  conversationTurns = conversationTurns.slice(-12);\n}\n\nconst conversationText = conversationTurns\n  .map((turn) => `${turn.role}: ${turn.content}`)\n  .join('\\n');\nreturn [{ json: { ...event, fastReply, conversationText } }];"
+      }
+    },
+    {
+      "id": "if-respuesta-rapida",
+      "name": "¿Respuesta inmediata?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [1640, 280],
+      "position": [
+        1380,
+        280
+      ],
       "parameters": {
         "conditions": {
           "options": {
@@ -201,12 +198,12 @@
           },
           "conditions": [
             {
-              "id": "cond-handoff-agent",
-              "leftValue": "={{ $json.wantsHuman }}",
-              "rightValue": true,
+              "id": "cond-fast-reply",
+              "leftValue": "={{ $json.fastReply }}",
+              "rightValue": "",
               "operator": {
-                "type": "boolean",
-                "operation": "true",
+                "type": "string",
+                "operation": "notEmpty",
                 "singleValue": true
               }
             }
@@ -217,171 +214,178 @@
       }
     },
     {
-      "id": "http-send-handoff",
-      "name": "Enviar mensaje handoff",
+      "id": "code-usar-respuesta-rapida",
+      "name": "Usar respuesta rápida",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1620,
+        100
+      ],
+      "parameters": {
+        "jsCode": "const event = $input.first().json;\nreturn [{ json: { ...event, output: event.fastReply } }];"
+      }
+    },
+    {
+      "id": "code-preparar-gemini",
+      "name": "Preparar petición Gemini",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        360
+      ],
+      "parameters": {
+        "jsCode": "const event = $input.first().json;\nconst systemText = [\n  'Eres el módulo de comprensión del asistente de iShop Ecuador.',\n  'Analiza el ÚLTIMO mensaje del Cliente usando el historial solo como contexto.',\n  'Si cambia de tema, el tema nuevo manda. Corrige errores: microfno=micrófono, relok=reloj, mackbook=MacBook.',\n  'Devuelve exclusivamente JSON válido con estas claves:',\n  '\"intent\": product_search | compare | details | purchase | information | handoff | smalltalk | unclear.',\n  '\"search_query\": búsqueda breve y corregida para una base vectorial. Laptop Apple debe buscarse como MacBook y reloj Apple como Apple Watch.',\n  '\"category\": macbook | iphone | ipad | watch | airpods | mac_desktop | audio | accessory | \"\".',\n  '\"budget\": número en dólares vigente para el producto actual o null.',\n  '\"in_catalog\": false si claramente no es un producto vendido por una tienda Apple (micrófono, impresora, consola, laptop Windows); true si sí; null si no sabes.',\n  '\"information_topic\": shipping | payments | warranty | service | stores | contact | corporate | \"\".',\n  '\"refers_previous\": true si menciona opción 1/2/3, ese/esa, anteriores o pide comparar lo recién mostrado.',\n  '\"clarifying_question\": pregunta breve solo si realmente no se entiende; de lo contrario \"\".',\n].join('\\n');\nconst userText = [\n  'Conversación reciente de Chatwoot:',\n  event.conversationText || `Cliente: ${event.content}`,\n  '',\n  'Interpreta únicamente el último mensaje del Cliente.',\n].join('\\n');\nconst geminiBody = {\n  system_instruction: { parts: [{ text: systemText }] },\n  contents: [{ role: 'user', parts: [{ text: userText }] }],\n  generationConfig: {\n    maxOutputTokens: 900,\n    temperature: 0.1,\n    responseMimeType: 'application/json',\n    thinkingConfig: { thinkingLevel: 'low' },\n  },\n};\nreturn [{ json: { ...event, geminiBody } }];"
+      }
+    },
+    {
+      "id": "http-gemini-understand",
+      "name": "Gemini - Entender petición",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1880, 40],
+      "typeVersion": 4.5,
+      "position": [
+        1820,
+        360
+      ],
       "parameters": {
         "method": "POST",
-        "url": "=http://chatwoot:3000/api/v1/accounts/{{ $json.accountId }}/conversations/{{ $json.conversationId }}/messages",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={{ $env.GEMINI_API_KEY }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
-              "name": "api_access_token",
-              "value": "={{ $env.CHATWOOT_BOT_TOKEN }}"
+              "name": "Content-Type",
+              "value": "application/json"
             }
           ]
         },
         "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ content: $json.reply, message_type: 'outgoing', private: false }) }}",
+        "jsonBody": "={{ $json.geminiBody }}",
+        "options": {
+          "timeout": 12000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "code-interpretar-intencion",
+      "name": "Interpretar intención",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2040,
+        360
+      ],
+      "parameters": {
+        "jsCode": "const event = $('Preparar contexto RAG').first().json;\nconst response = $input.first().json;\nconst normalize = (value) => String(value || '')\n  .normalize('NFD')\n  .replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase()\n  .replace(/\\s+/g, ' ')\n  .trim();\nconst current = normalize(event.content);\nconst categories = new Set(['macbook', 'iphone', 'ipad', 'watch', 'airpods', 'mac_desktop', 'audio', 'accessory']);\n\nconst heuristic = () => {\n  let corrected = String(event.content || '')\n    .replace(/\\bmicrofno\\b/gi, 'micrófono')\n    .replace(/\\brelok\\b|\\brelo\\b/gi, 'reloj Apple Watch')\n    .replace(/\\bmackbook\\b/gi, 'MacBook');\n  let category = '';\n  if (/\\b(macbook|laptop|portatil|notebook)\\b/.test(current)) {\n    category = 'macbook';\n    corrected = corrected.replace(/\\b(laptop|portatil|notebook)\\b/gi, 'MacBook');\n  } else if (/\\b(iphone|celular|telefono)\\b/.test(current)) category = 'iphone';\n  else if (/\\b(ipad|tablet)\\b/.test(current)) category = 'ipad';\n  else if (/\\b(apple watch|relo[jk])\\b/.test(current)) category = 'watch';\n  else if (/\\bairpods?\\b/.test(current)) category = 'airpods';\n  else if (/\\b(imac|mac mini|mac studio)\\b/.test(current)) category = 'mac_desktop';\n  else if (/\\b(audifonos?|auriculares?|parlante|bocina|bose|jbl|beats)\\b/.test(current)) category = 'audio';\n  else if (/\\b(adaptador|cable|cargador|case|funda|teclado|mouse|correa|protector|mochila|airtag|pencil)\\b/.test(current)) category = 'accessory';\n\n  let information_topic = '';\n  if (/\\b(envio|entrega|domicilio)\\b/.test(current)) information_topic = 'shipping';\n  else if (/\\b(pago|tarjeta|cuota|diferido)\\b/.test(current)) information_topic = 'payments';\n  else if (/\\b(garantia|devolucion|cambio)\\b/.test(current)) information_topic = 'warranty';\n  else if (/\\b(servicio tecnico|reparacion|reparar)\\b/.test(current)) information_topic = 'service';\n  else if (/\\b(tienda|local|sucursal)\\b/.test(current)) information_topic = 'stores';\n  else if (/\\b(contacto|telefono|correo)\\b/.test(current)) information_topic = 'contact';\n  else if (/\\b(corporativ|empresa)\\b/.test(current)) information_topic = 'corporate';\n\n  let intent = information_topic ? 'information' : 'product_search';\n  if (/\\b(compar\\w*|diferencias?|opcion 1|opcion 2|versus|vs|contra)\\b/.test(current)) intent = 'compare';\n  else if (/\\b(comprar|lo quiero|me lo llevo|como compro|quiero ese|quiero esa)\\b/.test(current)) intent = 'purchase';\n  else if (/\\b(detalles?|especificaciones|caracteristicas|que trae|que incluye)\\b/.test(current)) intent = 'details';\n\n  const budgetMatch = current.match(/(?:presupuesto|tengo|hasta|maximo)\\D{0,12}(\\d{2,5})\\b/) || current.match(/\\$\\s*(\\d{2,5})\\b/);\n  const unsupported = /\\b(microfono|microfno|impresora|playstation|xbox|consola|laptop windows|computadora windows)\\b/.test(current);\n  return {\n    intent,\n    search_query: corrected,\n    category,\n    budget: budgetMatch ? Number(budgetMatch[1]) : null,\n    in_catalog: unsupported ? false : (category ? true : null),\n    information_topic,\n    refers_previous: /\\b(opcion(es)?|primera|segunda|tercera|esa|ese|esas|esos|anterior(es)?|las dos|los dos)\\b/.test(current),\n    clarifying_question: '',\n    source: 'heuristic',\n  };\n};\n\nlet understanding;\ntry {\n  const parts = response?.candidates?.[0]?.content?.parts || [];\n  const raw = parts.filter((part) => part.text && !part.thought).map((part) => part.text).join('').trim();\n  understanding = JSON.parse(raw.replace(/^```json\\s*|```$/g, '').trim());\n  understanding.source = 'gemini';\n} catch (error) {\n  understanding = heuristic();\n  understanding.geminiError = response?.error?.message || error.message;\n}\n\nunderstanding.intent = String(understanding.intent || 'unclear');\nunderstanding.category = categories.has(understanding.category) ? understanding.category : '';\nunderstanding.search_query = String(understanding.search_query || event.content).trim() || event.content;\nunderstanding.budget = understanding.budget === null || understanding.budget === undefined || understanding.budget === ''\n  ? null\n  : Number(understanding.budget);\nif (!Number.isFinite(understanding.budget)) understanding.budget = null;\nunderstanding.refers_previous = Boolean(understanding.refers_previous);\n\nif (understanding.intent === 'handoff') {\n  return [{ json: { ...event, understanding, skipRag: true, output: 'Te conecto con un asesor de iShop. Sigue en este mismo chat: en un momento te escribe una persona.\\n[[HANDOFF]]' } }];\n}\nif (understanding.intent === 'smalltalk') {\n  return [{ json: { ...event, understanding, skipRag: true, output: 'Puedo ayudarte con productos Apple, comparaciones, precios, envíos, pagos o garantías de iShop. ¿Qué buscas?' } }];\n}\nif (understanding.intent === 'unclear') {\n  return [{ json: { ...event, understanding, skipRag: true, output: understanding.clarifying_question || 'Cuéntame qué producto buscas o qué duda tienes sobre compras, envíos, pagos o garantías de iShop.' } }];\n}\nif (understanding.in_catalog === false) {\n  return [{ json: {\n    ...event,\n    understanding,\n    skipRag: true,\n    output: `No encontré “${understanding.search_query}” como producto en el catálogo actual de iShop. Puedo ayudarte con Mac, iPhone, iPad, Apple Watch, AirPods, audio y accesorios, o conectarte con un asesor.`,\n  } }];\n}\n\nconst isInformation = understanding.intent === 'information' || Boolean(understanding.information_topic);\nconst must = [{ key: 'doc_kind', match: { value: isInformation ? 'information' : 'product' } }];\nconst urls = [...new Set(String(event.conversationText || '').match(/https:\\/\\/ec\\.tiendasishop\\.com\\/products\\/[a-z0-9\\-]+/gi) || [])];\nif (!isInformation && understanding.refers_previous && urls.length) {\n  must.push({ key: 'url', match: { any: urls.slice(-3) } });\n} else if (!isInformation && understanding.category) {\n  must.push({ key: 'category', match: { value: understanding.category } });\n}\nreturn [{ json: {\n  ...event,\n  understanding,\n  skipRag: false,\n  searchQuery: understanding.search_query,\n  qdrantFilter: { must },\n  isInformation,\n} }];"
+      }
+    },
+    {
+      "id": "if-consultar-rag",
+      "name": "¿Consultar RAG?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2240,
+        360
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-consult-rag",
+              "leftValue": "={{ $json.skipRag }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
         "options": {}
       }
     },
     {
-      "id": "http-toggle-open",
-      "name": "Pasar a open",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [2120, 40],
+      "id": "qdrant-load-rag-v2",
+      "name": "Buscar evidencia en Qdrant",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        2440,
+        440
+      ],
       "parameters": {
-        "method": "POST",
-        "url": "=http://chatwoot:3000/api/v1/accounts/{{ $('Mensaje de handoff').item.json.accountId }}/conversations/{{ $('Mensaje de handoff').item.json.conversationId }}/toggle_status",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "api_access_token",
-              "value": "={{ $env.CHATWOOT_BOT_TOKEN }}"
-            }
-          ]
+        "mode": "load",
+        "prompt": "={{ $('Interpretar intención').first().json.searchQuery }}",
+        "topK": 12,
+        "includeDocumentMetadata": false,
+        "qdrantCollection": {
+          "__rl": true,
+          "mode": "id",
+          "value": "ishop_rag_v2"
         },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ status: 'open' }) }}",
-        "options": {}
+        "options": {
+          "searchFilterJson": "={{ JSON.stringify($('Interpretar intención').first().json.qdrantFilter) }}",
+          "contentPayloadKey": "content",
+          "metadataPayloadKey": "metadata"
+        }
+      },
+      "credentials": {
+        "qdrantApi": {
+          "id": "2AKlwhNh3Tt0n5rL",
+          "name": "Qdrant account"
+        }
       }
     },
     {
-      "id": "http-private-note",
-      "name": "Nota privada al asesor",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [2360, 40],
+      "id": "ollama-embeddings-rag",
+      "name": "Embeddings Ollama",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        2440,
+        680
+      ],
       "parameters": {
-        "method": "POST",
-        "url": "=http://chatwoot:3000/api/v1/accounts/{{ $('Mensaje de handoff').item.json.accountId }}/conversations/{{ $('Mensaje de handoff').item.json.conversationId }}/messages",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "api_access_token",
-              "value": "={{ $env.CHATWOOT_BOT_TOKEN }}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ content: $('Mensaje de handoff').item.json.privateNote, message_type: 'outgoing', private: true }) }}",
-        "options": {}
+        "model": "nomic-embed-text:latest"
+      },
+      "credentials": {
+        "ollamaApi": {
+          "id": "zEU9nNQ5PXIhfSvW",
+          "name": "Ollama account"
+        }
       }
     },
     {
-      "id": "http-send-handoff-agent",
-      "name": "Enviar handoff del agente",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1880, 180],
+      "id": "code-procesar-evidencia",
+      "name": "Procesar evidencia RAG",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2660,
+        440
+      ],
       "parameters": {
-        "method": "POST",
-        "url": "=http://chatwoot:3000/api/v1/accounts/{{ $json.accountId }}/conversations/{{ $json.conversationId }}/messages",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "api_access_token",
-              "value": "={{ $env.CHATWOOT_BOT_TOKEN }}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ content: $json.reply, message_type: 'outgoing', private: false }) }}",
-        "options": {}
-      }
-    },
-    {
-      "id": "http-toggle-open-agent",
-      "name": "Pasar a open desde agente",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [2120, 180],
-      "parameters": {
-        "method": "POST",
-        "url": "=http://chatwoot:3000/api/v1/accounts/{{ $('Preparar respuesta').item.json.accountId }}/conversations/{{ $('Preparar respuesta').item.json.conversationId }}/toggle_status",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "api_access_token",
-              "value": "={{ $env.CHATWOOT_BOT_TOKEN }}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ status: 'open' }) }}",
-        "options": {}
-      }
-    },
-    {
-      "id": "http-private-note-agent",
-      "name": "Nota privada desde agente",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [2360, 180],
-      "parameters": {
-        "method": "POST",
-        "url": "=http://chatwoot:3000/api/v1/accounts/{{ $('Preparar respuesta').item.json.accountId }}/conversations/{{ $('Preparar respuesta').item.json.conversationId }}/messages",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "api_access_token",
-              "value": "={{ $env.CHATWOOT_BOT_TOKEN }}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ content: $('Preparar respuesta').item.json.privateNote, message_type: 'outgoing', private: true }) }}",
-        "options": {}
-      }
-    },
-    {
-      "id": "http-send-reply",
-      "name": "Enviar respuesta IA",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1880, 400],
-      "parameters": {
-        "method": "POST",
-        "url": "=http://chatwoot:3000/api/v1/accounts/{{ $json.accountId }}/conversations/{{ $json.conversationId }}/messages",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "api_access_token",
-              "value": "={{ $env.CHATWOOT_BOT_TOKEN }}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ content: $json.reply, message_type: 'outgoing', private: false }) }}",
-        "options": {}
+        "jsCode": "const context = $('Interpretar intención').first().json;\nconst understanding = context.understanding || {};\nconst normalize = (value) => String(value || '')\n  .normalize('NFD')\n  .replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase();\nconst rows = $input.all().map((item) => item.json);\nconst documents = rows.map((row) => ({\n  content: String(row.document?.pageContent || ''),\n  score: Number(row.score || 0),\n})).filter((document) => document.content);\n\nif (context.isInformation) {\n  if (!documents.length) {\n    return [{ json: { ...context, output: 'No encontré información suficiente en la base pública de iShop. Puedes reformular la pregunta o escribir “quiero un asesor”.' } }];\n  }\n  const queryWords = normalize(context.searchQuery).split(/[^a-z0-9]+/).filter((word) => word.length > 3);\n  const sentences = documents\n    .map((document) => document.content)\n    .join('\\n')\n    .split(/(?<=[.!?])\\s+|\\n+/)\n    .map((sentence) => sentence.trim())\n    .filter((sentence) => sentence && queryWords.some((word) => normalize(sentence).includes(word)));\n  const output = [...new Set(sentences)].slice(0, 6).join(' ').slice(0, 1200)\n    || documents[0].content.slice(0, 1200);\n  return [{ json: { ...context, output } }];\n}\n\nconst field = (content, label) => {\n  const match = content.match(new RegExp(`^${label}:\\\\s*(.+)$`, 'mi'));\n  return match ? match[1].trim() : '';\n};\nconst products = documents.map((document) => {\n  const content = document.content;\n  const variantsMatch = content.match(/Variantes disponibles:\\s*([\\s\\S]*?)\\nDescripción:/i);\n  return {\n    title: field(content, 'Producto'),\n    url: field(content, 'URL'),\n    type: field(content, 'Tipo'),\n    price: Number((field(content, 'Precio desde').match(/[\\d.]+/) || [0])[0]),\n    variants: variantsMatch ? variantsMatch[1].trim() : '',\n    description: field(content, 'Descripción'),\n    score: document.score,\n  };\n}).filter((product) => product.title && product.url && product.price > 0);\n\nconst queryWords = normalize(context.searchQuery).split(/[^a-z0-9]+/).filter((word) => word.length > 2);\nproducts.forEach((product) => {\n  const title = normalize(product.title);\n  product.rank = product.score * 10 + queryWords.filter((word) => title.includes(word)).length * 2;\n});\nlet ranked = [...products];\nconst budget = understanding.budget;\nconst previousUrls = [...new Set(String(context.conversationText || '').match(/https:\\/\\/ec\\.tiendasishop\\.com\\/products\\/[a-z0-9\\-]+/gi) || [])].slice(-3);\nif (understanding.refers_previous && previousUrls.length) {\n  ranked.sort((a, b) => previousUrls.indexOf(a.url) - previousUrls.indexOf(b.url));\n} else if (budget !== null && budget !== undefined) {\n  const within = ranked.filter((product) => product.price <= budget).sort((a, b) => b.rank - a.rank);\n  const above = ranked.filter((product) => product.price > budget).sort((a, b) => a.price - b.price || b.rank - a.rank);\n  ranked = [...within, ...above];\n} else {\n  ranked.sort((a, b) => b.rank - a.rank);\n}\nranked = ranked.slice(0, 3);\n\nif (!ranked.length || (!understanding.category && !understanding.refers_previous && ranked[0].score < 0.6)) {\n  return [{ json: {\n    ...context,\n    output: `No encontré “${understanding.search_query || context.content}” como producto en el catálogo actual de iShop. Puedes reformular la búsqueda o escribir “quiero un asesor”.`,\n  } }];\n}\n\nif (understanding.intent === 'compare' && ranked.length >= 2) {\n  const [first, second] = ranked;\n  const firstVariant = first.variants.split('\\n')[0] || 'Características no detalladas en la ficha';\n  const secondVariant = second.variants.split('\\n')[0] || 'Características no detalladas en la ficha';\n  const difference = Math.abs(first.price - second.price);\n  let recommendation = first.price <= second.price\n    ? `${first.title} cuesta $${Math.round(difference)} menos.`\n    : `${second.title} cuesta $${Math.round(difference)} menos.`;\n  if (budget !== null && budget !== undefined) {\n    const inside = [first, second].filter((product) => product.price <= budget);\n    recommendation = inside.length\n      ? `Para tu presupuesto de $${budget}, recomiendo ${inside.sort((a, b) => b.rank - a.rank)[0].title}.`\n      : `Ninguna entra en tu presupuesto de $${budget}; la más cercana es ${[first, second].sort((a, b) => a.price - b.price)[0].title}.`;\n  }\n  const output = [\n    'Comparación entre las opciones 1 y 2:',\n    '',\n    `1. ${first.title} — desde $${Math.round(first.price)}`,\n    `   ${firstVariant}`,\n    `   ${first.url}`,\n    `2. ${second.title} — desde $${Math.round(second.price)}`,\n    `   ${secondVariant}`,\n    `   ${second.url}`,\n    '',\n    recommendation,\n    'Los precios y la disponibilidad pueden cambiar.',\n  ].join('\\n');\n  return [{ json: { ...context, output } }];\n}\n\nif (understanding.intent === 'purchase' && ranked.length) {\n  const product = ranked[0];\n  return [{ json: {\n    ...context,\n    output: `${product.title} está publicado desde $${Math.round(product.price)}.\\n\\nVer producto y comprar:\\n${product.url}\\n\\nLa compra y el pago se completan en la ficha. Los precios y la disponibilidad pueden cambiar.`,\n  } }];\n}\n\nif (understanding.intent === 'details' && ranked.length) {\n  const product = ranked[0];\n  const variants = product.variants.split('\\n').slice(0, 3).join('\\n');\n  return [{ json: {\n    ...context,\n    output: `${product.title} — desde $${Math.round(product.price)}\\n\\n${product.description || 'La ficha no detalla una descripción adicional.'}${variants ? `\\n\\nVariantes:\\n${variants}` : ''}\\n\\n${product.url}\\n\\nLos precios y la disponibilidad pueden cambiar.`,\n  } }];\n}\n\nconst list = ranked.map((product) => {\n  const over = budget !== null && budget !== undefined && product.price > budget ? ' (supera tu presupuesto)' : '';\n  return `• ${product.title} — desde $${Math.round(product.price)}${over}\\n  ${product.url}`;\n}).join('\\n');\nlet intro = 'Estas son las opciones más relacionadas del catálogo actual:';\nif (budget !== null && budget !== undefined) {\n  const inside = ranked.filter((product) => product.price <= budget);\n  intro = inside.length\n    ? `Con tu presupuesto de $${budget}, estas son las opciones que mejor encajan:`\n    : `No encontré una opción dentro de tu presupuesto de $${budget}. Las más cercanas son:`;\n}\nreturn [{ json: { ...context, output: `${intro}\\n\\n${list}\\n\\nLos precios y la disponibilidad pueden cambiar; confírmalos en la ficha.` } }];"
       }
     }
   ],
@@ -412,6 +416,17 @@
       "main": [
         [
           {
+            "node": "Marcar escribiendo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar escribiendo": {
+      "main": [
+        [
+          {
             "node": "¿Pide un asesor?",
             "type": "main",
             "index": 0
@@ -430,7 +445,7 @@
         ],
         [
           {
-            "node": "Asistente iShop",
+            "node": "Preparar contexto RAG",
             "type": "main",
             "index": 0
           }
@@ -441,36 +456,127 @@
       "main": [
         [
           {
-            "node": "Enviar mensaje handoff",
+            "node": "Publicar en Chatwoot",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Enviar mensaje handoff": {
+    "Preparar contexto RAG": {
       "main": [
         [
           {
-            "node": "Pasar a open",
+            "node": "¿Respuesta inmediata?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Pasar a open": {
+    "¿Respuesta inmediata?": {
       "main": [
         [
           {
-            "node": "Nota privada al asesor",
+            "node": "Usar respuesta rápida",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar petición Gemini",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Asistente iShop": {
+    "Usar respuesta rápida": {
+      "main": [
+        [
+          {
+            "node": "Preparar respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar petición Gemini": {
+      "main": [
+        [
+          {
+            "node": "Gemini - Entender petición",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Entender petición": {
+      "main": [
+        [
+          {
+            "node": "Interpretar intención",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Interpretar intención": {
+      "main": [
+        [
+          {
+            "node": "¿Consultar RAG?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Consultar RAG?": {
+      "main": [
+        [
+          {
+            "node": "Buscar evidencia en Qdrant",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar evidencia en Qdrant": {
+      "main": [
+        [
+          {
+            "node": "Procesar evidencia RAG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Buscar evidencia en Qdrant",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Procesar evidencia RAG": {
       "main": [
         [
           {
@@ -485,92 +591,8 @@
       "main": [
         [
           {
-            "node": "¿Handoff del agente?",
+            "node": "Publicar en Chatwoot",
             "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "¿Handoff del agente?": {
-      "main": [
-        [
-          {
-            "node": "Enviar handoff del agente",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Enviar respuesta IA",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Enviar handoff del agente": {
-      "main": [
-        [
-          {
-            "node": "Pasar a open desde agente",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Pasar a open desde agente": {
-      "main": [
-        [
-          {
-            "node": "Nota privada desde agente",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Google Gemini": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Asistente iShop",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Memoria simple": {
-      "ai_memory": [
-        [
-          {
-            "node": "Asistente iShop",
-            "type": "ai_memory",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Conocimiento iShop": {
-      "ai_tool": [
-        [
-          {
-            "node": "Asistente iShop",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Embeddings Ollama": {
-      "ai_embedding": [
-        [
-          {
-            "node": "Conocimiento iShop",
-            "type": "ai_embedding",
             "index": 0
           }
         ]

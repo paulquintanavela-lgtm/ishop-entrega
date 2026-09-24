@@ -16,11 +16,12 @@ services:
       N8N_DIAGNOSTICS_ENABLED: "false"
       N8N_PERSONALIZATION_ENABLED: "false"
       N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
       GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-America/Guayaquil}
       TZ: ${GENERIC_TIMEZONE:-America/Guayaquil}
       CHATWOOT_URL: http://chatwoot:3000
-      CHATWOOT_ACCOUNT_ID: ${CHATWOOT_ACCOUNT_ID:-1}
-      CHATWOOT_BOT_TOKEN: ${CHATWOOT_BOT_TOKEN:-}
+    env_file:
+      - .env
     volumes:
       - n8n_data:/home/node/.n8n
       - ./knowledge:/files/knowledge:ro
@@ -43,6 +44,8 @@ services:
   ollama:
     image: ollama/ollama:latest
     restart: unless-stopped
+    environment:
+      OLLAMA_KEEP_ALIVE: "-1"
     ports:
       - "11434:11434"
     volumes:
@@ -97,6 +100,7 @@ services:
       REDIS_URL: redis://chatwoot-redis:6379
       ACTIVE_STORAGE_SERVICE: local
       RAILS_LOG_TO_STDOUT: "true"
+      SAFE_FETCH_ALLOW_PRIVATE_NETWORK: "true"
     volumes:
       - chatwoot_storage:/app/storage
     entrypoint: docker/entrypoints/rails.sh
@@ -125,6 +129,7 @@ services:
       REDIS_URL: redis://chatwoot-redis:6379
       ACTIVE_STORAGE_SERVICE: local
       RAILS_LOG_TO_STDOUT: "true"
+      SAFE_FETCH_ALLOW_PRIVATE_NETWORK: "true"
     volumes:
       - chatwoot_storage:/app/storage
     command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]

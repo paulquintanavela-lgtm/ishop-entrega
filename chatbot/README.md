@@ -10,7 +10,13 @@ quién responde.
 Página local :8080
   → Widget Chatwoot
   → Conversación Chatwoot :3000
-      estado pending → n8n AgentBot :5678 → Gemini + Qdrant → misma conversación
+      estado pending → n8n AgentBot :5678
+        saludo/simple → respuesta inmediata
+        Gemini entiende intención, errores, contexto y presupuesto
+        → Embeddings Ollama
+        → Qdrant ishop_rag_v2 con filtros de metadatos
+        → respuesta construida solo con la evidencia recuperada
+        → misma conversación
       estado open    → bandeja del asesor en Chatwoot → misma conversación
 ```
 
@@ -32,7 +38,10 @@ No incluye WhatsApp, Shopify Admin, tracking de pedidos ni citas reales.
 - `workflows/01-cargar-conocimiento.json`: formulario para cargar archivos RAG.
 - `workflows/02-chatbot-web.json`: chatbot web directo de n8n, como reserva.
 - `workflows/03-solicitud-asesor-email.json`: formulario de correo opcional.
-- `workflows/04-chatwoot-agent-bot.json`: AgentBot con RAG y handoff humano.
+- `workflows/04-chatwoot-agent-bot.json`: AgentBot con el recorrido RAG visible
+  en nodos separados y handoff humano.
+- `scripts/index_knowledge.py`: crea el índice RAG estructurado, con un
+  producto por vector y metadatos de categoría.
 - `scripts/setup_chatwoot.py`: crea el inbox web y el bot después del alta inicial.
 - `knowledge/`: documentos que se cargan al RAG.
 - `widget/`: el sitio carga `chatbot-widget.js`. Si existe token de Chatwoot,
@@ -106,7 +115,12 @@ También se pueden importar manualmente desde n8n usando los JSON de
 1. En n8n, abrir **Credentials**.
 2. Crear `Google Gemini(PaLM) Api`.
 3. Pegar la API key de Google AI Studio.
-4. Asignarla al nodo `Google Gemini` de los workflows 02 y 04.
+4. Asignarla al nodo `Google Gemini` del workflow 02.
+
+El workflow 04 usa `GEMINI_API_KEY` desde `.env` en el nodo visible
+`Gemini - Entender petición`. Gemini interpreta el último mensaje y produce la
+consulta para el RAG. Si la cuota gratuita está agotada, una interpretación
+heurística continúa por los mismos nodos Ollama y Qdrant.
 
 ### Ollama API
 
@@ -122,7 +136,8 @@ Ollama genera los embeddings localmente, sin API key, cuota ni costo.
 1. Crear la credencial `QdrantApi`.
 2. En la credencial de n8n usar la URL interna: `http://qdrant:6333`
 3. API key: dejar vacía. Si la interfaz obliga a escribir una, usar `local`.
-4. Asignarla a los nodos Qdrant de los workflows 01, 02 y 04.
+4. Asignarla a los nodos Qdrant de los workflows 01, 02 y 04. En el workflow
+   04 el nodo se llama `Buscar evidencia en Qdrant`.
 
 > `http://qdrant:6333` solo funciona entre los contenedores Docker. No se abre
 > directamente en el navegador de macOS. Para revisar Qdrant desde el navegador
@@ -136,22 +151,26 @@ contraseña de aplicación. Asignar la credencial SMTP al workflow 03 y reemplaz
 
 ## 6. Cargar documentos a Qdrant
 
-1. Configurar y activar `iShop 01 - Cargar conocimiento RAG`.
-2. En el nodo `Dividir texto`, usar **Chunk Size 5000** y
-   **Chunk Overlap 300**.
-3. Abrir la **Production URL** del nodo `Cargar documento`.
-4. Subir, uno por uno:
-   - `catalogo-productos.md`
-   - `contenido-publico-ishop.md`
-   - `reglas-asistente.md`
-5. No subir `preguntas-prueba.md`: se utiliza para evaluar.
+Con Ollama y Qdrant iniciados, ejecuta:
 
-La colección utilizada se llama `ishop_knowledge`.
+```bash
+python3 chatbot/scripts/index_knowledge.py
+```
+
+El script crea `ishop_rag_v2`. Cada producto queda en un vector separado con
+su categoría, precio, URL, variantes y descripción. El embedding usa un texto
+compacto para buscar rápido, mientras el payload conserva la evidencia completa
+para responder. Esto evita que un chunk mezcle una MacBook con cables,
+adaptadores u otros accesorios.
+
+El workflow 01 se conserva únicamente para cargar documentos manuales de
+prueba. El AgentBot principal no usa su colección antigua `ishop_knowledge`.
 
 ## 7. Activar el AgentBot
 
-1. Configurar las credenciales del workflow `iShop 04 - AgentBot Chatwoot`.
-2. Guardar y publicar/activar el workflow.
+1. Verificar que `.env` tenga `GEMINI_API_KEY`, `CHATWOOT_BOT_TOKEN` y
+   `CHATWOOT_ACCESS_TOKEN`.
+2. Guardar y publicar/activar `iShop 04 - AgentBot Chatwoot`.
 3. Abrir <http://localhost:8080> y usar el botón naranja del chat.
 
 El widget oficial de Chatwoot carga el historial en el mismo hilo. Si todavía
@@ -159,15 +178,19 @@ no existe `chatwoot-config.json`, el sitio usa el chatbot directo de n8n.
 
 ## 8. Hablar con un asesor
 
-1. En el widget, escribe una consulta normal. La IA debe responder con RAG.
-2. Escribe “quiero hablar con un asesor”. La conversación pasa de `pending` a
-   `open` y la IA deja de responder.
-3. Abre <http://localhost:3000>, entra a la bandeja y responde. El mensaje
-   aparece en el mismo widget del cliente.
-4. Para devolver la conversación a la IA, cambia el estado a **Pending**.
+1. En el widget de <http://localhost:8080>, escribe una consulta normal.
+   La IA responde en ese mismo chat.
+2. Escribe “quiero hablar con un asesor” (también vale soporte, persona o
+   humano). La conversación pasa a `open`, se asigna a un agente humano y
+   la IA deja de responder.
+3. Abre <http://localhost:3000> con tu usuario de soporte. En
+   **Conversaciones → iShop Web** verás el hilo. Responde ahí: el cliente
+   ve el mensaje en el mismo widget.
+4. Para devolver la conversación a la IA, cambia el estado a **Pending**
+   y vuelve a asignar el AgentBot si hace falta.
 
-Palabras que activan el traspaso: persona, asesor, humano, agente, reclamo,
-queja o una respuesta del modelo con `[[HANDOFF]]`.
+Palabras que activan el traspaso: asesor, soporte, persona, humano, agente,
+reclamo, queja o una respuesta del modelo con `[[HANDOFF]]`.
 
 ## 9. Probar
 

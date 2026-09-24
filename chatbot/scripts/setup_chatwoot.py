@@ -161,6 +161,39 @@ def main() -> None:
     if not website_token:
         raise RuntimeError("Chatwoot no entregó el token público del widget.")
 
+    api(
+        "PATCH",
+        f"/api/v1/accounts/{account_id}/inboxes/{inbox_id}",
+        access_token,
+        {
+            "enable_email_collect": False,
+            "pre_chat_form_enabled": False,
+            "greeting_enabled": False,
+            "greeting_message": "",
+            "out_of_office_message": (
+                "El asistente virtual de iShop está disponible. "
+                "Pulsa Iniciar conversación para escribirnos."
+            ),
+        },
+    )
+
+    agents_payload = api("GET", f"/api/v1/accounts/{account_id}/agents", access_token)
+    agent_items = (
+        agents_payload.get("payload", agents_payload)
+        if isinstance(agents_payload, dict)
+        else agents_payload
+    )
+    if isinstance(agent_items, list):
+        for agent in agent_items:
+            if not isinstance(agent, dict) or agent.get("id") is None:
+                continue
+            api(
+                "PUT",
+                f"/api/v1/accounts/{account_id}/agents/{agent['id']}",
+                access_token,
+                {"auto_offline": False, "availability": "online"},
+            )
+
     bots_payload = api("GET", f"/api/v1/accounts/{account_id}/agent_bots", access_token)
     bot_items = (
         bots_payload.get("payload", bots_payload)

@@ -52,7 +52,7 @@ a `open` para que un asesor continúe en la misma conversación.
 
 Ofrece esa atención humana cuando:
 
-- El cliente pide explícitamente una persona, un asesor o un agente.
+- El cliente pide explícitamente una persona, un asesor, soporte o un agente.
 - La base de conocimiento no contiene ninguna información útil después de
   consultarla.
 - El cliente pregunta por un pedido privado o tracking.

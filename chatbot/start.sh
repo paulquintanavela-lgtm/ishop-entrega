@@ -47,6 +47,17 @@ fi
 
 docker compose up -d
 
+echo "Manteniendo caliente el modelo de embeddings..."
+curl -sS --max-time 60 http://localhost:11434/api/embed \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"nomic-embed-text:latest","input":"ishop","keep_alive":-1}' \
+  >/dev/null || true
+
+if ! curl -fsS http://localhost:6333/collections/ishop_rag_v2 >/dev/null; then
+  echo "Creando el índice RAG estructurado por primera vez..."
+  python3 scripts/index_knowledge.py
+fi
+
 echo
 echo "Servicios iniciados:"
 echo "- n8n:      http://localhost:5678"
