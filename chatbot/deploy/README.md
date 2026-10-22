@@ -80,13 +80,41 @@ acaban los créditos o se cumplen los 6 meses, AWS cierra la cuenta sola.
    Si todavía responde otra IP, espera unos minutos: Caddy no puede emitir el
    certificado hasta que el DNS apunte bien.
 
-## Paso 4. Preparar el servidor
+## Paso 4. Copiar el proyecto al servidor
+
+El repositorio es privado, así que la forma más simple es copiarlo desde el Mac
+con `rsync`. Desde **tu Mac**, no desde el servidor:
+
+```bash
+rsync -avz --delete \
+  --exclude '.git' \
+  --exclude '__pycache__' \
+  --exclude '.DS_Store' \
+  --exclude 'chatbot/.env' \
+  --exclude 'chatbot/.env.bak' \
+  --exclude 'chatbot/.chatwoot-prepared' \
+  --exclude 'chatbot/widget/chatwoot-config.json' \
+  -e "ssh -i ~/Downloads/LightsailDefaultKey.pem" \
+  ~/Documents/ishop/ ubuntu@LA-IP-ESTATICA:~/ishop/
+```
+
+Las exclusiones importan: el `.env` y los tokens de tu Mac no sirven en el
+servidor, y `.chatwoot-prepared` haría que el arranque se saltara la creación
+de la base de datos.
+
+Son unos 100 MB, así que tarda un par de minutos. Para actualizar el servidor
+más adelante, repite el mismo comando.
+
+> Si prefieres `git clone`, primero haz público el repositorio o crea un deploy
+> key en GitHub. En ese caso recuerda que `.chatwoot-prepared` y los `.env` ya
+> están en `.gitignore`, así que no se copian.
+
+## Paso 5. Preparar el servidor
 
 Dentro del servidor, por SSH:
 
 ```bash
-git clone https://github.com/PierreAlejandro88/ishop-tesis.git ishop
-cd ishop
+cd ~/ishop
 bash chatbot/deploy/setup-server.sh
 ```
 
@@ -94,10 +122,10 @@ El script instala Docker con el plugin Compose, crea 2 GB de swap e instala
 `git` y `python3`. Al terminar, **cierra la sesión SSH y vuelve a entrar** para
 poder usar `docker` sin `sudo`.
 
-## Paso 5. Configurar el entorno de producción
+## Paso 6. Configurar el entorno de producción
 
 ```bash
-cd ishop
+cd ~/ishop
 bash chatbot/deploy/configure.sh ishop-pierre.duckdns.org tu-correo@ejemplo.com
 ```
 
@@ -113,9 +141,10 @@ El archivo incluye `COMPOSE_FILE=compose.yml:compose.prod.yml`, así que
 cualquier `docker compose` que ejecutes dentro de `chatbot/` ya usa la
 configuración de producción.
 
-## Paso 6. Levantar el stack
+## Paso 7. Levantar el stack
 
 ```bash
+cd ~/ishop
 bash chatbot/deploy/start-prod.sh
 ```
 
@@ -133,7 +162,7 @@ docker compose logs -f chatwoot
 Abre `https://TU-DOMINIO` en el navegador. La tienda debe cargar con candado de
 seguridad.
 
-## Paso 7. Conectar Chatwoot con el widget
+## Paso 8. Conectar Chatwoot con el widget
 
 1. Entra a `https://chat.TU-DOMINIO` y crea la cuenta propietaria.
 2. **Profile Settings → Access Token**: copia el token.
@@ -153,7 +182,7 @@ El script crea el inbox `iShop Web` y el AgentBot, y genera
 `chatbot/widget/chatwoot-config.json` apuntando a `https://chat.TU-DOMINIO`.
 El widget de la tienda lo lee solo, sin tocar código.
 
-## Paso 8. Workflows y credenciales de n8n
+## Paso 9. Workflows y credenciales de n8n
 
 1. Entra a `https://n8n.TU-DOMINIO` y crea el usuario propietario.
 2. Importa los workflows:
@@ -169,7 +198,7 @@ El widget de la tienda lo lee solo, sin tocar código.
    - `Google Gemini(PaLM) Api`: tu API key
 4. Activa el workflow `iShop 04 - AgentBot Chatwoot`.
 
-## Paso 9. Cargar el índice RAG
+## Paso 10. Cargar el índice RAG
 
 `start-prod.sh` ya lo crea si no existe. Para reconstruirlo después de
 actualizar el catálogo:
@@ -180,7 +209,7 @@ python3 chatbot/scripts/sync_knowledge.py
 python3 chatbot/scripts/index_knowledge.py
 ```
 
-## Paso 10. Cerrar el registro público de Chatwoot
+## Paso 11. Cerrar el registro público de Chatwoot
 
 Con el propietario ya creado, evita que cualquiera abra una cuenta en tu panel:
 
@@ -189,7 +218,7 @@ nano chatbot/.env            # ENABLE_ACCOUNT_SIGNUP=false
 cd chatbot && docker compose up -d chatwoot chatwoot-sidekiq
 ```
 
-## Paso 11. Verificar
+## Paso 12. Verificar
 
 ```bash
 cd ~/ishop
@@ -230,7 +259,7 @@ docker compose exec -T chatwoot-postgres \
 El plan Free termina a los 6 meses. Para seguir con el proyecto, el mismo
 `compose.yml` y `compose.prod.yml` funcionan sin cambios en cualquier VPS con
 Docker (Hetzner CPX21, 4 GB, ~US$8 al mes). Solo hay que repetir los pasos 4 a
-8 en el servidor nuevo y actualizar la IP en DuckDNS.
+9 en el servidor nuevo y actualizar la IP en DuckDNS.
 
 ## Diferencia con el entorno local
 
@@ -238,4 +267,4 @@ El servidor no clona páginas nuevas de la tienda original: `server.py` solo
 existe en local. En la nube, Caddy sirve las páginas ya descargadas, así que
 cualquier URL que nunca se haya visitado en local dará 404. Si falta alguna,
 ábrela primero en `http://localhost:8080`, confirma que se creó la carpeta y
-sube el cambio al repositorio.
+vuelve a copiar el proyecto con el `rsync` del paso 4.
