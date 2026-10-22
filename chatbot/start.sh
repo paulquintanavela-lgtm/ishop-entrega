@@ -47,6 +47,17 @@ fi
 
 docker compose up -d
 
+echo "Esperando a Ollama..."
+for _ in $(seq 1 30); do
+  if curl -fsS http://localhost:11434/api/version >/dev/null 2>&1; then
+    break
+  fi
+  sleep 2
+done
+
+echo "Descargando el modelo de embeddings si falta..."
+docker compose exec -T ollama ollama pull nomic-embed-text:latest
+
 echo "Manteniendo caliente el modelo de embeddings..."
 curl -sS --max-time 60 http://localhost:11434/api/embed \
   -H 'Content-Type: application/json' \

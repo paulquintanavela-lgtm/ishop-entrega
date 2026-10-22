@@ -8,6 +8,9 @@ Para instalar o replicar todo el ambiente en otra computadora, consultar
 `../GUIA-PAUL-ISHOP.pdf`. La versión editable está en
 `../GUIA-PAUL-ISHOP.md`.
 
+Para publicarlo en internet con HTTPS y dominio propio, ver
+[`deploy/README.md`](deploy/README.md).
+
 ## Arquitectura
 
 ```text
@@ -39,6 +42,10 @@ No incluye WhatsApp, Shopify Admin, tracking de pedidos ni citas reales.
 ## Archivos
 
 - `compose.yml`: n8n, Qdrant, Ollama, Chatwoot CE, PostgreSQL y Redis.
+- `compose.prod.yml` y `Caddyfile`: despliegue en la nube con HTTPS. Solo se
+  usan en el servidor, junto al compose base.
+- `deploy/`: guía y scripts para subir todo a un servidor (ver
+  `deploy/README.md`).
 - `workflows/01-cargar-conocimiento.json`: formulario para cargar archivos RAG.
 - `workflows/02-chatbot-web.json`: chatbot web directo de n8n, como reserva.
 - `workflows/03-solicitud-asesor-email.json`: formulario de correo opcional.
@@ -91,8 +98,11 @@ La primera vez, n8n y Chatwoot solicitarán crear un usuario propietario local.
 
 ```bash
 python3 chatbot/scripts/setup_chatwoot.py
-docker compose -f chatbot/compose.yml restart n8n
+cd chatbot && docker compose up -d n8n && cd ..
 ```
+
+Se usa `up -d` y no `restart` para que n8n vuelva a leer el `.env` y reciba
+`CHATWOOT_BOT_TOKEN`.
 
 El script crea o reutiliza el inbox `iShop Web`, el AgentBot y escribe el token
 público en `chatbot/widget/chatwoot-config.json`. El token administrativo no se

@@ -1,5 +1,6 @@
 {
   "baseUrl": "http://localhost:3000",
   "websiteToken": "",
-  "inboxName": "iShop Web"
+  "inboxName": "iShop Web",
+  "n8nWebhookUrl": "http://localhost:5678/webhook/7b30dce3-a9c0-4e49-b25c-3d2f6a71c980/chat"
 }

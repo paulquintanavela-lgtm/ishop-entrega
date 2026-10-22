@@ -1,6 +1,6 @@
 import { createChat } from "https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js";
 
-const CHAT_WEBHOOK_URL =
+const DEFAULT_CHAT_WEBHOOK_URL =
   "http://localhost:5678/webhook/7b30dce3-a9c0-4e49-b25c-3d2f6a71c980/chat";
 const CHAT_OPEN_KEY = "ishop-chat/open";
 const CHATWOOT_CONFIG_URL = "/chatbot/widget/chatwoot-config.json";
@@ -37,17 +37,13 @@ function addStylesheet(href) {
   document.head.append(link);
 }
 
-async function loadChatwootConfig() {
+async function loadWidgetConfig() {
   try {
     const response = await fetch(CHATWOOT_CONFIG_URL, { cache: "no-store" });
     if (!response.ok) {
       return null;
     }
-    const config = await response.json();
-    if (!config?.websiteToken) {
-      return null;
-    }
-    return config;
+    return await response.json();
   } catch {
     return null;
   }
@@ -204,7 +200,7 @@ function installEnhancements() {
   observer.observe(document.body, { childList: true, subtree: true });
 }
 
-function initializeN8nChat() {
+function initializeN8nChat(webhookUrl) {
   if (document.querySelector("#n8n-chat")) {
     return;
   }
@@ -217,7 +213,7 @@ function initializeN8nChat() {
   document.body.append(target);
 
   createChat({
-    webhookUrl: CHAT_WEBHOOK_URL,
+    webhookUrl,
     target: "#n8n-chat",
     mode: "window",
     chatInputKey: "chatInput",
@@ -248,12 +244,12 @@ function initializeN8nChat() {
 }
 
 async function initializeChat() {
-  const chatwootConfig = await loadChatwootConfig();
-  if (chatwootConfig) {
-    initializeChatwoot(chatwootConfig);
+  const config = await loadWidgetConfig();
+  if (config?.websiteToken) {
+    initializeChatwoot(config);
     return;
   }
-  initializeN8nChat();
+  initializeN8nChat(config?.n8nWebhookUrl || DEFAULT_CHAT_WEBHOOK_URL);
 }
 
 if (document.readyState === "loading") {

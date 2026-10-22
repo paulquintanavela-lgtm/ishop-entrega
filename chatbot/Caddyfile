@@ -1,0 +1,38 @@
+# Proxy único de iShop en la nube. Caddy pide y renueva los certificados
+# de Let's Encrypt solo, sin configuración extra.
+#
+# Los dominios llegan como variables de entorno desde chatbot/.env:
+#   SITE_DOMAIN, CHAT_DOMAIN, N8N_DOMAIN
+{
+	email {$ACME_EMAIL}
+}
+
+# Tienda estática. El repositorio completo se monta en /srv/site, así que
+# /chatbot queda accesible por ruta: solo se publica widget/.
+{$SITE_DOMAIN} {
+	encode zstd gzip
+	root * /srv/site
+
+	@privado {
+		path /chatbot/*
+		not path /chatbot/widget/*
+	}
+	respond @privado 404
+
+	@oculto path /.git/* /.github/* *.py *.sh *.yml *.pyc /.env*
+	respond @oculto 404
+
+	file_server
+}
+
+# Panel de Chatwoot y SDK del widget.
+{$CHAT_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy chatwoot:3000
+}
+
+# Editor de n8n y webhooks del AgentBot.
+{$N8N_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy n8n:5678
+}

@@ -1,0 +1,66 @@
+# Override de producción. Se usa junto al compose base, nunca solo:
+#   docker compose -f compose.yml -f compose.prod.yml up -d
+#
+# Cambios respecto al entorno local:
+# - Caddy es el único servicio con puertos públicos (80 y 443) y resuelve HTTPS.
+# - n8n, Chatwoot, Qdrant y Ollama solo escuchan en 127.0.0.1 del servidor,
+#   para que los scripts de mantenimiento sigan funcionando desde el host.
+# - Las URLs internas de localhost pasan a los dominios públicos.
+#
+# Requiere Docker Compose v2.24 o superior por la etiqueta !override.
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN}
+      CHAT_DOMAIN: ${CHAT_DOMAIN}
+      N8N_DOMAIN: ${N8N_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../:/srv/site:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - chatwoot
+      - n8n
+
+  n8n:
+    ports: !override
+      - "127.0.0.1:5678:5678"
+    environment:
+      N8N_HOST: ${N8N_DOMAIN}
+      N8N_PROTOCOL: https
+      N8N_WEBHOOK_URL: https://${N8N_DOMAIN}/
+      N8N_EDITOR_BASE_URL: https://${N8N_DOMAIN}/
+      N8N_SECURE_COOKIE: "true"
+      N8N_PROXY_HOPS: "1"
+      CHATWOOT_PUBLIC_URL: https://${CHAT_DOMAIN}
+
+  qdrant:
+    ports: !override
+      - "127.0.0.1:6333:6333"
+
+  ollama:
+    ports: !override
+      - "127.0.0.1:11434:11434"
+
+  chatwoot:
+    ports: !override
+      - "127.0.0.1:3000:3000"
+    environment:
+      FRONTEND_URL: https://${CHAT_DOMAIN}
+      ENABLE_ACCOUNT_SIGNUP: ${ENABLE_ACCOUNT_SIGNUP:-false}
+
+  chatwoot-sidekiq:
+    environment:
+      FRONTEND_URL: https://${CHAT_DOMAIN}
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 import urllib.error
 import urllib.request
@@ -12,11 +13,10 @@ from pathlib import Path
 CHATBOT_ROOT = Path(__file__).resolve().parents[1]
 ENV_PATH = CHATBOT_ROOT / ".env"
 CONFIG_PATH = CHATBOT_ROOT / "widget" / "chatwoot-config.json"
-CHATWOOT_URL = "http://localhost:3000"
 INBOX_NAME = "iShop Web"
 BOT_NAME = "Asistente iShop"
 BOT_WEBHOOK = "http://n8n:5678/webhook/ishop-chatwoot-bot"
-WEBSITE_URL = "http://localhost:8080"
+N8N_CHAT_WEBHOOK_PATH = "/webhook/7b30dce3-a9c0-4e49-b25c-3d2f6a71c980/chat"
 
 
 def load_env(path: Path) -> dict[str, str]:
@@ -30,6 +30,23 @@ def load_env(path: Path) -> dict[str, str]:
         key, value = line.split("=", 1)
         values[key.strip()] = value.strip()
     return values
+
+
+ENV = load_env(ENV_PATH)
+
+
+def setting(key: str, default: str) -> str:
+    """Busca el valor en el entorno del proceso, luego en .env y luego en local."""
+    value = os.environ.get(key) or ENV.get(key) or default
+    return value.strip().rstrip("/")
+
+
+# URL del API. En la nube Chatwoot solo escucha en 127.0.0.1 del servidor.
+CHATWOOT_URL = setting("CHATWOOT_URL", "http://localhost:3000")
+# URL pública con la que el navegador del cliente carga el widget.
+CHATWOOT_PUBLIC_URL = setting("CHATWOOT_PUBLIC_URL", CHATWOOT_URL)
+WEBSITE_URL = setting("WEBSITE_URL", "http://localhost:8080")
+N8N_PUBLIC_URL = setting("N8N_PUBLIC_URL", "http://localhost:5678")
 
 
 def upsert_env(path: Path, updates: dict[str, str]) -> None:
@@ -96,12 +113,12 @@ def find_named(items: list[dict[str, object]], name: str) -> dict[str, object] |
 
 
 def main() -> None:
-    env = load_env(ENV_PATH)
+    env = ENV
     access_token = env.get("CHATWOOT_ACCESS_TOKEN", "").strip()
     if not access_token:
         raise SystemExit(
             "Falta CHATWOOT_ACCESS_TOKEN en chatbot/.env.\n"
-            "Abre http://localhost:3000, crea el propietario y copia el "
+            f"Abre {CHATWOOT_PUBLIC_URL}, crea el propietario y copia el "
             "Access Token de Profile Settings."
         )
 
@@ -251,9 +268,10 @@ def main() -> None:
     CONFIG_PATH.write_text(
         json.dumps(
             {
-                "baseUrl": CHATWOOT_URL,
+                "baseUrl": CHATWOOT_PUBLIC_URL,
                 "websiteToken": website_token,
                 "inboxName": INBOX_NAME,
+                "n8nWebhookUrl": f"{N8N_PUBLIC_URL}{N8N_CHAT_WEBHOOK_PATH}",
             },
             indent=2,
             ensure_ascii=False,
@@ -274,8 +292,8 @@ def main() -> None:
     print(f"AgentBot: {bot.get('id')} → {BOT_WEBHOOK}")
     print(f"Widget público: {CONFIG_PATH}")
     print("El token administrativo no se guardó en el repositorio.")
-    print("Reinicia n8n para cargar CHATWOOT_BOT_TOKEN:")
-    print("  docker compose -f chatbot/compose.yml restart n8n")
+    print("Recrea n8n para que lea CHATWOOT_BOT_TOKEN del .env:")
+    print("  cd chatbot && docker compose up -d n8n")
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import unicodedata
 import urllib.error
@@ -16,8 +17,8 @@ KNOWLEDGE_DIR = CHATBOT_ROOT / "knowledge"
 CATALOG_PATH = KNOWLEDGE_DIR / "catalogo-productos.md"
 PUBLIC_CONTENT_PATH = KNOWLEDGE_DIR / "contenido-publico-ishop.md"
 
-OLLAMA_URL = "http://localhost:11434"
-QDRANT_URL = "http://localhost:6333"
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434").rstrip("/")
+QDRANT_URL = os.environ.get("QDRANT_URL", "http://localhost:6333").rstrip("/")
 EMBEDDING_MODEL = "nomic-embed-text:latest"
 COLLECTION = "ishop_rag_v2"
 VECTOR_SIZE = 768

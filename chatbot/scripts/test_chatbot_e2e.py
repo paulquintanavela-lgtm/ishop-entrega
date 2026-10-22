@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 import unicodedata
 import urllib.error
@@ -15,7 +16,7 @@ from typing import Any
 
 CHATBOT_ROOT = Path(__file__).resolve().parents[1]
 ENV_PATH = CHATBOT_ROOT / ".env"
-CHATWOOT_URL = "http://localhost:3000"
+CHATWOOT_URL = os.environ.get("CHATWOOT_URL", "http://localhost:3000").rstrip("/")
 RESPONSE_TIMEOUT_SECONDS = 45
 
 
