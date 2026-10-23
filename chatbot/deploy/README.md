@@ -166,6 +166,11 @@ seguridad.
 
 1. Entra a `https://chat.TU-DOMINIO`. Como todavía no hay usuarios, Chatwoot
    redirige a `/installation/onboarding`: ahí se crea la cuenta propietaria.
+
+   Esa pantalla crea una cuenta nueva cada vez que se completa. Si un segundo
+   asesor la usa en lugar de iniciar sesión, termina en una cuenta vacía, sin
+   inbox ni conversaciones. Los demás asesores se agregan desde
+   **Settings → Agents** de la cuenta ya existente.
 2. **Profile Settings → Access Token**: copia el token.
 3. Pégalo en `chatbot/.env` como `CHATWOOT_ACCESS_TOKEN=...`
 4. Ejecuta:
@@ -182,6 +187,14 @@ seguridad.
 El script crea el inbox `iShop Web` y el AgentBot, y genera
 `chatbot/widget/chatwoot-config.json` apuntando a `https://chat.TU-DOMINIO`.
 El widget de la tienda lo lee solo, sin tocar código.
+
+5. Si quieres que los traspasos lleguen a un asesor concreto y no al primer
+   administrador de la lista, pon su correo en el `.env` y recrea n8n:
+
+   ```bash
+   echo "CHATWOOT_HUMAN_AGENT_EMAIL=asesor@tuempresa.com" >> chatbot/.env
+   cd chatbot && docker compose up -d n8n && cd ..
+   ```
 
 ## Paso 9. Workflows y credenciales de n8n
 
@@ -208,12 +221,31 @@ El widget de la tienda lo lee solo, sin tocar código.
 
    La API key de Gemini no necesita credencial: el workflow 04 la lee de
    `GEMINI_API_KEY` en el `.env`.
-4. Activa el AgentBot y reinicia n8n para que registre el webhook:
+4. Activa el AgentBot. `update:workflow --active=true` marca la bandera en la
+   base pero no siempre registra el webhook, ni siquiera reiniciando, así que
+   conviene activarlo por la API, que sí lo registra:
 
    ```bash
    ID=$(docker compose exec -T n8n n8n list:workflow | grep "AgentBot" | cut -d"|" -f1)
-   docker compose exec -T n8n n8n update:workflow --id=$ID --active=true
-   docker compose restart n8n
+   VER=$(curl -s -b /tmp/n8n.txt "https://$N8N_DOMAIN/rest/workflows/$ID" | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["versionId"])')
+   curl -s -b /tmp/n8n.txt -X POST "https://$N8N_DOMAIN/rest/workflows/$ID/activate" \
+     -H "Content-Type: application/json" -d "{\"versionId\":\"$VER\"}"
+   ```
+
+   La cookie `/tmp/n8n.txt` se obtiene con:
+
+   ```bash
+   curl -s -c /tmp/n8n.txt -X POST "https://$N8N_DOMAIN/rest/login" \
+     -H "Content-Type: application/json" \
+     -d '{"emailOrLdapLoginId":"TU_CORREO","password":"TU_CLAVE"}'
+   ```
+
+   Para comprobarlo, el webhook debe responder 200:
+
+   ```bash
+   curl -o /dev/null -w "%{http_code}\n" -X POST \
+     "https://$N8N_DOMAIN/webhook/ishop-chatwoot-bot" \
+     -H "Content-Type: application/json" -d '{"event":"ping"}'
    ```
 
 ## Paso 10. Cargar el índice RAG

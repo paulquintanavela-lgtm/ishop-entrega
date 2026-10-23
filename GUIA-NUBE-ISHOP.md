@@ -217,6 +217,41 @@ bash chatbot/deploy/start-prod.sh
 
 Para salir del servidor se escribe `exit`.
 
+## Atender como asesor humano
+
+El asesor no usa una herramienta aparte: trabaja dentro de Chatwoot, en
+`https://chat.100-52-28-14.sslip.io`.
+
+Lo primero al entrar es marcarse como **Disponible** en el menú de la foto de
+perfil, arriba a la derecha. Mientras nadie esté disponible, el widget de la
+tienda muestra el aviso "Estamos ausentes".
+
+Las conversaciones se ven en **Conversaciones → iShop Web**, y el estado indica
+quién está a cargo:
+
+| Estado | Significado |
+|---|---|
+| Pendiente | La inteligencia artificial está respondiendo |
+| Abierta | El cliente pidió un asesor y espera respuesta humana |
+| Resuelta | La consulta terminó |
+
+Cuando alguien escribe "quiero hablar con un asesor" (también funciona con
+soporte, persona, humano, agente, reclamo o queja), pasan tres cosas sin
+intervención: la conversación cambia a Abierta, se asigna al asesor configurado
+en `CHATWOOT_HUMAN_AGENT_EMAIL` y la inteligencia artificial deja de responder
+para no pisar al humano. Además queda una nota interna, visible solo para el
+equipo, indicando que hubo un traspaso.
+
+El asesor responde desde el cuadro de texto normal y el cliente lo lee en el
+mismo widget, sin cambiar de ventana ni recargar la página. Para devolver la
+conversación a la inteligencia artificial, basta cambiar el estado a Pendiente.
+
+Una advertencia sobre el alta de asesores: la pantalla de configuración inicial
+de Chatwoot crea una cuenta nueva cada vez que se completa. Un asesor que la use
+en lugar de iniciar sesión termina en una cuenta vacía, sin conversaciones. Los
+asesores adicionales se agregan desde **Settings → Agents** de la cuenta ya
+existente, y reciben una invitación por correo.
+
 ## Actualizar los productos
 
 Cuando cambien precios o productos, el procedimiento es:
