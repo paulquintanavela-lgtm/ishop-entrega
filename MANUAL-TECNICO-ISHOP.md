@@ -218,7 +218,27 @@ tienda, de modo que el conocimiento no se mantiene a mano.
 - **Lotes de 24 documentos**, con `keep_alive: -1` para que Ollama no descargue
   el modelo de memoria entre lotes.
 
-Estado actual verificado: **219 puntos** indexados.
+Estado actual verificado: **218 puntos** del catálogo.
+
+## Documentos cargados desde el formulario
+
+El workflow 01 publica un formulario en
+`https://n8n.TU-DOMINIO/form/cargar-conocimiento` que permite subir un PDF o un
+archivo de texto sin acceso al servidor. El flujo extrae el texto, lo parte por
+párrafos en fragmentos de unos 900 caracteres, calcula los vectores con el mismo
+modelo que el indexador y los escribe en la misma colección.
+
+Esos puntos llevan `origin: carga_manual`, y por eso `index_knowledge.py` ya no
+borra la colección completa: ahora elimina solo los puntos cuyo `origin` no sea
+ese valor, de modo que una actualización del catálogo respeta lo que cargó un
+asesor. Los identificadores de los documentos subidos empiezan en mil millones
+para no chocar con los correlativos del catálogo.
+
+Si la búsqueda de productos devuelve evidencia floja (puntaje máximo por debajo
+de 0.70) y el mensaje está redactado como pregunta, el nodo *Procesar evidencia
+RAG* repite la búsqueda sobre los documentos informativos. Esto existe porque el
+clasificador de intención conoce una lista fija de temas y no puede anticipar
+los de un documento recién subido.
 
 El payload de cada punto conserva los campos estructurados, lo que permite
 filtrar antes de medir similitud:

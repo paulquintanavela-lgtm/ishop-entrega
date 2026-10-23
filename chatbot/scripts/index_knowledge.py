@@ -23,6 +23,10 @@ EMBEDDING_MODEL = "nomic-embed-text:latest"
 COLLECTION = "ishop_rag_v2"
 VECTOR_SIZE = 768
 BATCH_SIZE = 24
+CATALOG_ORIGIN = "catalogo"
+# Marca de los documentos cargados por el formulario de n8n, que este script
+# no debe tocar. Debe coincidir con el valor que escribe el workflow 01.
+MANUAL_ORIGIN = "carga_manual"
 
 
 def request_json(
@@ -143,6 +147,7 @@ def parse_products() -> list[dict[str, Any]]:
                 "content": content,
                 "payload": {
                     "doc_kind": "product",
+                    "origin": CATALOG_ORIGIN,
                     "category": category,
                     "title": title,
                     "url": url,
@@ -172,6 +177,7 @@ def parse_public_content() -> list[dict[str, Any]]:
                 "text": f"{title}\n{content}",
                 "payload": {
                     "doc_kind": "information",
+                    "origin": CATALOG_ORIGIN,
                     "category": normalized(title).replace(" ", "_"),
                     "title": title,
                     "content": content,
@@ -193,19 +199,36 @@ def embeddings(texts: list[str]) -> list[list[float]]:
     return vectors
 
 
-def recreate_collection() -> None:
+def prepare_collection() -> None:
+    """Deja la colección lista conservando los documentos subidos desde n8n.
+
+    Antes se borraba la colección completa. Eso eliminaba también lo que un
+    asesor hubiera cargado por el formulario, así que ahora solo se descartan
+    los puntos que este script genera.
+    """
     try:
-        request_json("DELETE", f"{QDRANT_URL}/collections/{COLLECTION}")
+        request_json("GET", f"{QDRANT_URL}/collections/{COLLECTION}")
+        existe = True
     except urllib.error.HTTPError as error:
         if error.code != 404:
             raise
+        existe = False
+
+    if not existe:
+        request_json(
+            "PUT",
+            f"{QDRANT_URL}/collections/{COLLECTION}",
+            {
+                "vectors": {"size": VECTOR_SIZE, "distance": "Cosine"},
+                "on_disk_payload": True,
+            },
+        )
+        return
+
     request_json(
-        "PUT",
-        f"{QDRANT_URL}/collections/{COLLECTION}",
-        {
-            "vectors": {"size": VECTOR_SIZE, "distance": "Cosine"},
-            "on_disk_payload": True,
-        },
+        "POST",
+        f"{QDRANT_URL}/collections/{COLLECTION}/points/delete?wait=true",
+        {"filter": {"must_not": [{"key": "origin", "match": {"value": MANUAL_ORIGIN}}]}},
     )
 
 
@@ -230,11 +253,23 @@ def index_documents(documents: list[dict[str, Any]]) -> None:
         print(f"Indexados {min(start + BATCH_SIZE, len(documents))}/{len(documents)}")
 
 
+def manual_documents_count() -> int:
+    result = request_json(
+        "POST",
+        f"{QDRANT_URL}/collections/{COLLECTION}/points/count",
+        {"filter": {"must": [{"key": "origin", "match": {"value": MANUAL_ORIGIN}}]}, "exact": True},
+    )
+    return int(result.get("result", {}).get("count", 0))
+
+
 def main() -> None:
     documents = [*parse_products(), *parse_public_content()]
-    recreate_collection()
+    prepare_collection()
     index_documents(documents)
-    print(f"Colección {COLLECTION}: {len(documents)} documentos independientes")
+    manuales = manual_documents_count()
+    print(f"Colección {COLLECTION}: {len(documents)} documentos del catálogo")
+    if manuales:
+        print(f"Se conservaron {manuales} fragmentos cargados desde el formulario")
 
 
 if __name__ == "__main__":

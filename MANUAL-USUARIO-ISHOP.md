@@ -28,6 +28,7 @@ nube*; para el detalle interno, el *Manual técnico*.
 |---|---|
 | Tienda con el chat | `https://100-52-28-14.sslip.io` |
 | Panel de asesores | `https://chat.100-52-28-14.sslip.io` |
+| Subir documentos al asistente | `https://n8n.100-52-28-14.sslip.io/form/cargar-conocimiento` |
 | Automatizaciones | `https://n8n.100-52-28-14.sslip.io` |
 
 Las tres funcionan desde cualquier computadora o teléfono con Internet. No hace
@@ -211,6 +212,35 @@ contacto y se puede reabrir.
 
 Pulsar la foto de perfil, entrar a **Perfil** y cambiar la contraseña desde ahí.
 Conviene hacerlo la primera vez que se entra.
+
+## Agregar documentos al conocimiento del asistente
+
+Cuando aparece información que el asistente debería conocer y que no está en la
+tienda (una política nueva, un instructivo, condiciones de una promoción), se
+sube desde un formulario web, sin tocar la terminal:
+
+`https://n8n.100-52-28-14.sslip.io/form/cargar-conocimiento`
+
+1. Escribir el **tema del documento**. Conviene que sea descriptivo, por ejemplo
+   "Política de reservas y apartado 2026", porque ayuda al asistente a
+   encontrarlo.
+2. Elegir el archivo. Acepta **PDF y archivos de texto** (`.txt`, `.md`).
+3. Pulsar **Submit**.
+
+En unos segundos aparece la confirmación indicando cuántos fragmentos se
+guardaron. Desde ese momento el asistente ya responde con ese contenido; no hace
+falta reiniciar nada.
+
+Tres advertencias que conviene conocer:
+
+- Un PDF **escaneado como imagen** no sirve, porque no contiene texto que se
+  pueda extraer. El formulario lo avisa en lugar de fallar en silencio.
+- Los documentos subidos **no se borran** cuando se actualiza el catálogo de
+  productos. Están marcados de forma que el proceso de actualización los
+  respeta.
+- Para corregir un documento ya cargado hay que pedirle al responsable técnico
+  que elimine la versión anterior; subir una corrección deja las dos versiones
+  conviviendo.
 
 ## Agregar otro asesor
 
