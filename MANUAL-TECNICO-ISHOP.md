@@ -181,7 +181,25 @@ asesor, en lugar de dejar que el modelo improvise.
 con el contexto recuperado y la instrucción de ceñirse a él.
 
 **11. Elegir respuesta final / Publicar en Chatwoot.** Publica la respuesta en
-la conversación mediante la API de Chatwoot.
+la conversación mediante la API de Chatwoot. Si Gemini no devolvió texto, se
+publica la plantilla calculada desde el catálogo, de modo que el cliente siempre
+recibe algo correcto aunque el modelo falle.
+
+### Modo asesor
+
+*Preparar redacción final* decide además si la petición es demasiado general
+para recomendar. Lo es cuando hay una categoría pero no hay presupuesto, ni uso
+declarado, ni referencia a algo anterior, el mensaje tiene seis palabras o
+menos, y el asistente no preguntó ya en su turno previo. En ese caso instruye a
+Gemini a mencionar como mucho dos opciones y cerrar con una pregunta que acote.
+
+La condición de "no preguntó ya" evita interrogar al cliente dos veces seguidas:
+basta con que el último mensaje del asistente contenga un signo de pregunta.
+
+El módulo de comprensión recibe además la instrucción de heredar la categoría
+cuando el cliente responde a esa pregunta. Sin eso, un mensaje como *"para
+editar video, hasta 2500"* se interpretaba como una búsqueda nueva y no
+encontraba nada.
 
 Hay además un atajo: para saludos y frases triviales, el nodo *¿Respuesta
 inmediata?* responde con un texto fijo sin gastar llamadas al modelo ni
@@ -350,7 +368,12 @@ python3 chatbot/scripts/test_chatbot_e2e.py
 
 Recorre 13 casos (consultas por categoría, comparaciones, presupuesto,
 preguntas de políticas y un traspaso a humano) contra la API real de Chatwoot.
-Resultado de la última ejecución: **13/13 correctas, 1.02 s de promedio**.
+Resultado de la última ejecución: **13/13 correctas, 2.83 s de promedio**.
+
+El promedio subió desde 1.02 s cuando se corrigieron las llamadas a Gemini:
+antes el flujo caía en su plantilla local, que no sale del servidor. Ahora cada
+mensaje implica dos llamadas al modelo, y ese es el costo de que las respuestas
+estén redactadas y razonadas en lugar de listadas.
 
 # Fallas conocidas y cómo diagnosticarlas
 
@@ -370,6 +393,29 @@ curl -b cookie.txt -X POST \
 ```
 
 Se comprueba enviando un ping al webhook: debe responder 200, no 404.
+
+## Las respuestas suenan a listado de catálogo y nunca a redacción
+
+Síntoma: el asistente responde siempre con el mismo formato de viñetas, sin
+adaptarse a la pregunta. Causa: las llamadas a Gemini fallaban y el flujo caía
+en su plantilla de respaldo, que es justamente ese listado.
+
+Los nodos HTTP tenían `contentType: raw`, de modo que el objeto del cuerpo se
+enviaba convertido a `[object Object]` y la API respondía *"Invalid JSON
+payload received. Unknown name: Root element must be a message"*. El flujo no
+se detiene porque esos nodos usan `neverError`, así que el fallo era invisible.
+
+La configuración correcta es `contentType: json` con el cuerpo serializado:
+
+```
+"contentType": "json",
+"specifyBody": "json",
+"jsonBody": "={{ JSON.stringify($json.geminiBody) }}"
+```
+
+Para comprobar si está ocurriendo, se mira una ejecución del workflow: el nodo
+*Interpretar intención* muestra `"source": "heuristic"` en lugar de `gemini`, y
+*Elegir respuesta final* muestra `responseSource: safe-rag-template`.
 
 ## El bot responde vacío y el log dice "Invalid Qdrant URL"
 

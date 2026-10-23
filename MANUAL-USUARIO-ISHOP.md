@@ -56,6 +56,19 @@ son casos verificados, con la respuesta que realmente devuelve:
 > Devuelve el iPhone 17 Pro desde $1629, el iPhone 17 desde $1259 y el iPhone 17
 > Pro Max desde $1789, cada uno con su enlace a la ficha.
 
+**Pedir algo general y dejarse asesorar**
+
+> *quiero una laptop*
+>
+> En vez de volcar el catálogo, muestra un par de referencias de precio y
+> pregunta para qué la quiere y cuánto piensa gastar. Si el cliente responde
+> *"para editar video, hasta 2500"*, el asistente recuerda la conversación,
+> respeta el presupuesto y recomienda un modelo concreto explicando por qué
+> encaja, con sus características.
+
+El asistente no vuelve a preguntar lo que el cliente ya respondió, y solo
+pregunta una vez: si el cliente no concreta, recomienda con lo que tenga.
+
 **Buscar por uso, sin saber el nombre del producto**
 
 > *quiero audífonos para el gimnasio*
