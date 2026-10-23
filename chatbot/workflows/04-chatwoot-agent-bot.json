@@ -124,7 +124,7 @@
         40
       ],
       "parameters": {
-        "jsCode": "const event = $input.first().json;\nconst panel = $env.CHATWOOT_PUBLIC_URL || 'http://localhost:3000';\nreturn [{\n  json: {\n    ...event,\n    reply: 'Te conecto con un asesor de iShop. Sigue en este mismo chat: en un momento te escribe una persona.',\n    privateNote: `Handoff de ${event.contactName}. Atiéndelo en ${panel} > Conversaciones > iShop Web. Para devolverlo a la IA, cambia el estado a Pending.`,\n    wantsHuman: true,\n  },\n}];\n"
+        "jsCode": "const event = $input.first().json;\nconst panel = $env.CHATWOOT_PUBLIC_URL || 'http://localhost:3000';\nreturn [{\n  json: {\n    ...event,\n    reply: 'Te conecto con un asesor de iShop. Sigue en este mismo chat: en un momento te escribe una persona.',\n    privateNote: `Handoff de ${event.contactName}. Atiéndelo en ${panel} > Conversaciones > iShop Web. Para devolverlo a la IA, cambia el estado a Pendiente.`,\n    wantsHuman: true,\n  },\n}];\n"
       }
     },
     {
