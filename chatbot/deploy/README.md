@@ -164,7 +164,8 @@ seguridad.
 
 ## Paso 8. Conectar Chatwoot con el widget
 
-1. Entra a `https://chat.TU-DOMINIO` y crea la cuenta propietaria.
+1. Entra a `https://chat.TU-DOMINIO`. Como todavía no hay usuarios, Chatwoot
+   redirige a `/installation/onboarding`: ahí se crea la cuenta propietaria.
 2. **Profile Settings → Access Token**: copia el token.
 3. Pégalo en `chatbot/.env` como `CHATWOOT_ACCESS_TOKEN=...`
 4. Ejecuta:
@@ -191,12 +192,29 @@ El widget de la tienda lo lee solo, sin tocar código.
    bash chatbot/import-workflows.sh
    ```
 
-3. En n8n crea las credenciales como en local (las URLs internas no cambian
-   porque los contenedores siguen hablando entre ellos):
-   - `Ollama API`: `http://ollama:11434`
-   - `QdrantApi`: `http://qdrant:6333`, API key vacía o `local`
-   - `Google Gemini(PaLM) Api`: tu API key
-4. Activa el workflow `iShop 04 - AgentBot Chatwoot`.
+3. Importa las credenciales de Ollama y Qdrant. El archivo
+   `deploy/n8n-credentials.json` ya trae los IDs que los workflows esperan, así
+   que los nodos quedan enlazados sin tocarlos a mano:
+
+   ```bash
+   cd ~/ishop/chatbot
+   docker compose cp deploy/n8n-credentials.json n8n:/tmp/credentials.json
+   docker compose exec -T n8n n8n import:credentials --input=/tmp/credentials.json
+   ```
+
+   El campo de la URL de Qdrant se llama `qdrantUrl`. Si se usa cualquier otro
+   nombre, n8n guarda la credencial vacía y el nodo falla con
+   `Invalid Qdrant URL`.
+
+   La API key de Gemini no necesita credencial: el workflow 04 la lee de
+   `GEMINI_API_KEY` en el `.env`.
+4. Activa el AgentBot y reinicia n8n para que registre el webhook:
+
+   ```bash
+   ID=$(docker compose exec -T n8n n8n list:workflow | grep "AgentBot" | cut -d"|" -f1)
+   docker compose exec -T n8n n8n update:workflow --id=$ID --active=true
+   docker compose restart n8n
+   ```
 
 ## Paso 10. Cargar el índice RAG
 
