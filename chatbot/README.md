@@ -5,8 +5,7 @@ la IA y con un asesor humano en el mismo widget. El estado de Chatwoot decide
 quién responde.
 
 Para instalar o replicar todo el ambiente en otra computadora, consultar
-`../GUIA-PAUL-ISHOP.pdf`. La versión editable está en
-`../GUIA-PAUL-ISHOP.md`.
+[`../GUIA-PAUL-ISHOP.md`](../GUIA-PAUL-ISHOP.md).
 
 Para publicarlo en internet con HTTPS y dominio propio, ver
 [`deploy/README.md`](deploy/README.md).

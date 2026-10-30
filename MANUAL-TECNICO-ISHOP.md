@@ -107,7 +107,8 @@ ishop/
 │   └── deploy/                  scripts y guía de despliegue
 ├── GUIA-PAUL-ISHOP.md           operación del ambiente local
 ├── GUIA-NUBE-ISHOP.md           explicación de la publicación
-└── MANUAL-TECNICO-ISHOP.md      este documento
+├── MANUAL-TECNICO-ISHOP.md      este documento
+└── MANUAL-USUARIO-ISHOP.md      uso del asistente y del panel de asesores
 ```
 
 # Recorrido completo de una consulta
@@ -137,7 +138,7 @@ Chatwoot ◄──────────────────────�
 Navegador (widget)
 ```
 
-El workflow `04-chatwoot-agent-bot.json` tiene 21 nodos. Los relevantes, en
+El workflow `04-chatwoot-agent-bot.json` tiene 22 nodos. Los relevantes, en
 orden de ejecución:
 
 **1. Webhook Chatwoot.** Recibe el evento. Chatwoot envía todos los eventos de
