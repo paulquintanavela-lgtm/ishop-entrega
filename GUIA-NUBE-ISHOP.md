@@ -9,7 +9,7 @@ toc: true
 
 # 1. Para qué sirve este documento
 
-La guía anterior (`GUIA-PAUL-ISHOP.md`) explica cómo levantar el proyecto en
+La guía anterior (`GUIA-AMBIENTE-LOCAL-ISHOP.md`) explica cómo levantar el proyecto en
 una computadora personal. Este documento explica lo siguiente: **el mismo
 proyecto ahora vive en un servidor de internet**, con dirección pública y
 candado de seguridad, de modo que cualquiera puede entrar desde su celular sin
@@ -40,8 +40,11 @@ ventana de Terminal.
 
 La prueba automática (`chatbot/scripts/test_chatbot_e2e.py`) ejecutada sobre el
 servidor en producción dio **13 respuestas correctas de 13**, con un tiempo
-promedio de **1,27 segundos** por respuesta. El criterio mínimo del proyecto
-era 32 de 40 respuestas correctas.
+promedio de **1,27 segundos** por respuesta. Esa medición es anterior a la
+corrección de las llamadas a Gemini (`MANUAL-TECNICO-ISHOP.md`), que al pasar
+a dos llamadas reales al modelo por mensaje subió el promedio local de 1,02 s
+a 2,83 s; está pendiente repetir la prueba en producción con el flujo ya
+corregido. El criterio mínimo del proyecto era 32 de 40 respuestas correctas.
 
 # 3. Las piezas del sistema y por qué cada una
 

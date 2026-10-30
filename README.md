@@ -8,7 +8,7 @@ verificable del catálogo real**, y que deriva a un asesor humano cuando la
 consulta lo requiere.
 
 El sistema está desplegado y funcionando en un servidor público con HTTPS.
-La profesora puede probarlo directamente en la sección
+Se puede probar directamente en la sección
 [Prototipo en línea](#prototipo-en-línea).
 
 ## Integrantes y reparto de preguntas del video
@@ -18,18 +18,12 @@ La profesora puede probarlo directamente en la sección
 | 1.º | **Cristian Paúl Quintana Velásquez** | Impares: 1, 3, 5, 7 y 9 |
 | 2.º | **Luis Sebastián Arias Loaiza** | Pares: 2, 4, 6, 8 y 10 |
 
-> Según la rúbrica, el integrante que aparece primero en este README responde
-> las preguntas impares y el segundo las pares.
-
 ## Videos de la entrega
 
 | Entrega | Duración máxima | Enlace |
 | --- | --- | --- |
-| Video 1 — Presentación del proyecto (pitch con demostración) | 5 minutos | _Pendiente: insertar enlace de YouTube (no listado) o Google Drive_ |
+| Video 1 — Presentación del proyecto (pitch con demostración) | 5 minutos | <https://drive.google.com/file/d/13m8T07LmotDpD1bGad4QrXiTn1qHYiKv/view> |
 | Video 2 — Respuestas a las 10 preguntas (intercaladas entre los dos integrantes) | 2 minutos por pregunta | <https://drive.google.com/file/d/1YVGQWalicO9Deuld0mXAn657M8PcDgA6/view> |
-
-> Los enlaces de Google Drive deben compartirse con acceso de visualización
-> para cualquier persona con el enlace.
 
 ## Prototipo en línea
 
@@ -60,7 +54,58 @@ La propuesta no reemplaza al personal: resuelve lo frecuente con información
 autorizada y **deriva a una persona** lo delicado, lo no documentado o lo que
 requiere una decisión comercial.
 
+## Arquitectura
+
+El sistema vive en un único servidor y se apoya en un solo servicio externo.
+Cada pieza tiene una responsabilidad clara:
+
+```mermaid
+flowchart LR
+    cliente(["Cliente<br/>navegador"])
+    asesor(["Asesor humano"])
+    gemini["Google Gemini<br/>único servicio externo"]
+
+    subgraph servidor["Servidor único"]
+        caddy["Caddy<br/>TLS y enrutado"]
+        tienda["Tienda<br/>archivos estáticos"]
+        chatwoot["Chatwoot<br/>chat + bandeja de asesores"]
+        n8n["n8n<br/>orquestador del asistente"]
+        qdrant[("Qdrant<br/>catálogo vectorizado")]
+        ollama["Ollama<br/>embeddings locales"]
+        datos[("PostgreSQL + Redis<br/>datos de Chatwoot")]
+
+        caddy --> tienda
+        caddy --> chatwoot
+        caddy --> n8n
+        chatwoot --- datos
+        n8n --> ollama
+        n8n --> qdrant
+    end
+
+    cliente -- HTTPS --> caddy
+    chatwoot <-->|webhook| n8n
+    n8n -. interpreta y redacta .-> gemini
+    asesor --> chatwoot
+```
+
+- **Caddy** es la única puerta pública: recibe el tráfico HTTPS y lo reparte
+  por dominio hacia la tienda, Chatwoot o n8n.
+- **Chatwoot** es el chat que ve el cliente y la bandeja donde un asesor
+  humano puede tomar la conversación.
+- **n8n** contiene toda la lógica del asistente: en cada mensaje coordina a
+  Gemini, Ollama y Qdrant.
+- **Qdrant** guarda el catálogo convertido en vectores; **Ollama** genera
+  esos vectores localmente, sin costo ni fuga de datos.
+- **Google Gemini** es el único servicio fuera del servidor: interpreta la
+  intención y redacta la respuesta, pero nunca decide qué productos existen
+  ni qué precios tienen — eso lo entrega Qdrant.
+
+El detalle de los ocho contenedores Docker y la topología de red está en
+[`MANUAL-TECNICO-ISHOP.md`](MANUAL-TECNICO-ISHOP.md).
+
 ## Cómo funciona
+
+Así recorre un mensaje las piezas anteriores, de principio a fin:
 
 ```
 Cliente escribe en el widget de la tienda
@@ -105,7 +150,7 @@ ishop/
 │   ├── widget/                       integración del chat en la tienda
 │   ├── scripts/*.py                  sync, indexación, setup y pruebas
 │   └── deploy/                       scripts y guía de despliegue
-├── GUIA-PAUL-ISHOP.md                cómo levantar el ambiente local
+├── GUIA-AMBIENTE-LOCAL-ISHOP.md                cómo levantar el ambiente local
 ├── GUIA-NUBE-ISHOP.md                cómo se publicó en la nube
 ├── MANUAL-TECNICO-ISHOP.md           arquitectura y funcionamiento interno
 ├── MANUAL-USUARIO-ISHOP.md           uso del asistente y del panel
@@ -136,7 +181,7 @@ python3 -m http.server 8080        # o: python3 server.py (clona páginas faltan
 
 La guía paso a paso completa (incluida la configuración inicial de Chatwoot y
 las credenciales de n8n) está en
-[`GUIA-PAUL-ISHOP.md`](GUIA-PAUL-ISHOP.md). Para publicarlo en un servidor
+[`GUIA-AMBIENTE-LOCAL-ISHOP.md`](GUIA-AMBIENTE-LOCAL-ISHOP.md). Para publicarlo en un servidor
 público con HTTPS, ver [`GUIA-NUBE-ISHOP.md`](GUIA-NUBE-ISHOP.md) y
 [`chatbot/deploy/README.md`](chatbot/deploy/README.md).
 
@@ -146,7 +191,7 @@ público con HTTPS, ver [`GUIA-NUBE-ISHOP.md`](GUIA-NUBE-ISHOP.md) y
 | --- | --- |
 | [`MANUAL-TECNICO-ISHOP.md`](MANUAL-TECNICO-ISHOP.md) | Arquitectura, pipeline RAG, scripts, fallas conocidas |
 | [`MANUAL-USUARIO-ISHOP.md`](MANUAL-USUARIO-ISHOP.md) | Cómo usa el cliente el chat y cómo atiende el asesor |
-| [`GUIA-PAUL-ISHOP.md`](GUIA-PAUL-ISHOP.md) | Instalación y operación del ambiente local |
+| [`GUIA-AMBIENTE-LOCAL-ISHOP.md`](GUIA-AMBIENTE-LOCAL-ISHOP.md) | Instalación y operación del ambiente local |
 | [`GUIA-NUBE-ISHOP.md`](GUIA-NUBE-ISHOP.md) | Publicación en la nube, costos y operación diaria |
 | [`RESULTADOS-Y-EVIDENCIAS.md`](RESULTADOS-Y-EVIDENCIAS.md) | Pruebas, métricas, baseline, errores y limitaciones |
 | [`chatbot/README.md`](chatbot/README.md) | Detalle del componente chatbot |
@@ -157,8 +202,10 @@ público con HTTPS, ver [`GUIA-NUBE-ISHOP.md`](GUIA-NUBE-ISHOP.md) y
   (`chatbot/scripts/test_chatbot_e2e.py`): 13 casos reales contra la API de
   Chatwoot (búsquedas, presupuesto, comparación, errores ortográficos,
   políticas, control de alucinaciones y traspaso a humano).
-  **Resultado: 13/13 correctas, 1,02 s de promedio** (local) y
-  **13/13, 1,27 s** en el servidor de producción.
+  **Resultado: 13/13 correctas, 2,83 s de promedio** (local, tras la
+  corrección de las llamadas a Gemini) y **13/13 correctas** en el servidor
+  de producción (medición de 1,27 s anterior a esa corrección; pendiente de
+  repetir).
 - **Batería manual de 40 preguntas** (`chatbot/knowledge/preguntas-prueba.md`)
   con meta mínima de 32/40: registradas **39/39 aciertos en tres ejecuciones
   completas** del protocolo.

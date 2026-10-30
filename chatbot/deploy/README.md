@@ -65,16 +65,16 @@ acaban los créditos o se cumplen los 6 meses, AWS cierra la cuenta sola.
 ## Paso 3. Registrar el dominio gratis
 
 1. Entra a <https://www.duckdns.org/> e inicia sesión con Google o GitHub.
-2. Crea un subdominio, por ejemplo `ishop-pierre`.
+2. Crea un subdominio, por ejemplo `ishop-tesis`.
 3. En el campo **current ip** escribe la IP estática de Lightsail y pulsa
    **update ip**.
-4. Tu dominio base queda como `ishop-pierre.duckdns.org`. Los subdominios
+4. Tu dominio base queda como `ishop-tesis.duckdns.org`. Los subdominios
    `chat.` y `n8n.` funcionan automáticamente, no hay que registrarlos.
 5. Comprueba desde tu Mac que ya resuelve:
 
    ```bash
-   ping -c 1 ishop-pierre.duckdns.org
-   ping -c 1 chat.ishop-pierre.duckdns.org
+   ping -c 1 ishop-tesis.duckdns.org
+   ping -c 1 chat.ishop-tesis.duckdns.org
    ```
 
    Si todavía responde otra IP, espera unos minutos: Caddy no puede emitir el
@@ -126,7 +126,7 @@ poder usar `docker` sin `sudo`.
 
 ```bash
 cd ~/ishop
-bash chatbot/deploy/configure.sh ishop-pierre.duckdns.org tu-correo@ejemplo.com
+bash chatbot/deploy/configure.sh ishop-tesis.duckdns.org tu-correo@ejemplo.com
 ```
 
 Esto escribe `chatbot/.env` con los dominios, las URLs públicas y contraseñas

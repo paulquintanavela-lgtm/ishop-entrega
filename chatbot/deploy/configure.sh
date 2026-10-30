@@ -2,12 +2,12 @@
 # Escribe chatbot/.env para producción a partir del dominio base.
 # Conserva los tokens y secretos que ya existan.
 #
-#   bash chatbot/deploy/configure.sh ishop-pierre.duckdns.org correo@ejemplo.com
+#   bash chatbot/deploy/configure.sh ishop-tesis.duckdns.org correo@ejemplo.com
 set -euo pipefail
 
 if [[ $# -lt 2 ]]; then
   echo "Uso: bash chatbot/deploy/configure.sh <dominio-base> <correo>" >&2
-  echo "Ejemplo: bash chatbot/deploy/configure.sh ishop-pierre.duckdns.org paul@ejemplo.com" >&2
+  echo "Ejemplo: bash chatbot/deploy/configure.sh ishop-tesis.duckdns.org correo@ejemplo.com" >&2
   exit 1
 fi
 

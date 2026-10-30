@@ -9,8 +9,8 @@ toc: true
 
 # 1. Objetivo de esta guía
 
-Esta guía permite que Paul levante y administre el proyecto aunque no sea
-desarrollador.
+Esta guía permite que el administrador del sistema levante y administre el
+proyecto aunque no sea desarrollador.
 
 El proyecto incluye:
 
@@ -70,7 +70,7 @@ está disponible.
 
 # 3. Programas necesarios
 
-Paul debe tener instalados:
+El administrador del sistema debe tener instalados:
 
 1. **Docker Desktop para Mac**
    - Descargar desde <https://www.docker.com/products/docker-desktop/>
@@ -93,7 +93,7 @@ python3 --version
    - Para máxima calidad y continuidad se recomienda activar facturación en el
      proyecto de Google asociado a la API key.
 
-# 4. Actualizar el clon que Paul ya tiene
+# 4. Actualizar el clon que el administrador del sistema ya tiene
 
 ## Paso 1: abrir Terminal
 
@@ -101,7 +101,8 @@ Abrir **Terminal** desde Aplicaciones.
 
 ## Paso 2: entrar en la carpeta del proyecto
 
-Cambiar la ruta si Paul clonó el proyecto en otro lugar:
+Cambiar la ruta si el administrador del sistema clonó el proyecto en otro
+lugar:
 
 ```bash
 cd ~/Documents/ishop
@@ -115,8 +116,8 @@ git status
 
 Debe aparecer el repositorio `ishop-tesis`.
 
-Si Git muestra archivos modificados por Paul, no debe borrarlos. Debe enviar
-una captura a Pierre antes de continuar.
+Si Git muestra archivos modificados localmente, no debe borrarlos. Debe
+enviar una captura al equipo de desarrollo antes de continuar.
 
 ## Paso 4: detener el ambiente anterior
 
@@ -166,8 +167,8 @@ GEMINI_API_KEY=clave_de_google_ai_studio
 ```
 
 No copiar los textos `valor_generado`, `numero_de_cuenta` ni
-`token_de_chatwoot`. Deben usarse los valores reales de la computadora de
-Paul.
+`token_de_chatwoot`. Deben usarse los valores reales de la computadora donde
+se instaló el proyecto.
 
 Si `.env` no existe:
 
@@ -500,7 +501,8 @@ La redacción final se configura en:
 Preparar redacción final
 ```
 
-Paul no debería editar esos nodos sin guardar antes una copia del workflow.
+El administrador del sistema no debería editar esos nodos sin guardar antes
+una copia del workflow.
 
 ## Cambiar colores o texto del chat
 
@@ -664,7 +666,8 @@ chatbot/knowledge/reglas-asistente.md
 
 # 21. Soporte y seguridad
 
-Si algo falla, Paul debe enviar:
+Si algo falla, el administrador del sistema debe enviar al equipo de
+desarrollo:
 
 1. Captura del error.
 2. El nombre del nodo rojo en n8n.

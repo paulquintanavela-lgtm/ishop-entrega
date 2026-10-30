@@ -58,10 +58,10 @@ reloj» devuelva un portátil por parecido de redacción.
 
 | Medición | Resultado | Fuente |
 | --- | --- | --- |
-| Batería e2e local (13 casos) | **13/13 correctas, 1,02 s de promedio** | `MANUAL-TECNICO-ISHOP.md` |
-| Batería e2e en el servidor de producción | **13/13 correctas, 1,27 s de promedio** | `GUIA-NUBE-ISHOP.md` |
-| Tres ejecuciones completas seguidas del protocolo e2e | **39/39 correctas** (3 × 13) | `GUIA-PAUL-ISHOP.md` |
-| Respuestas con Gemini agotado (modo de respaldo) | Correctas, entre **2,15 y 4,70 s** | `GUIA-PAUL-ISHOP.md` |
+| Batería e2e local (13 casos) | **13/13 correctas, 2,83 s de promedio** | `MANUAL-TECNICO-ISHOP.md` |
+| Batería e2e en el servidor de producción | **13/13 correctas, 1,27 s de promedio** (medición anterior a la corrección de las llamadas a Gemini, commit `585dfd4`; pendiente de repetir) | `GUIA-NUBE-ISHOP.md` |
+| Tres ejecuciones completas seguidas del protocolo e2e | **39/39 correctas** (3 × 13) | `GUIA-AMBIENTE-LOCAL-ISHOP.md` |
+| Respuestas con Gemini agotado (modo de respaldo) | Correctas, entre **2,15 y 4,70 s** | `GUIA-AMBIENTE-LOCAL-ISHOP.md` |
 | Documentos indexados en `ishop_rag_v2` | **219** | `index_knowledge.py` / Qdrant |
 
 Contra el criterio mínimo del proyecto (32/40), las 13 preguntas automatizadas
@@ -196,3 +196,7 @@ documentados en los manuales:
 - Canales adicionales (WhatsApp) y seguimiento de envíos.
 - Métricas de satisfacción de usuarios reales (el piloto con personas aún no
   se ejecuta; los tiempos y aciertos provienen de las baterías automáticas).
+- Repetir la batería e2e en el servidor de producción: la cifra de 1,27 s
+  vigente es anterior a la corrección de las llamadas a Gemini (commit
+  `585dfd4`), que en local subió el promedio de 1,02 s a 2,83 s al pasar a
+  dos llamadas reales al modelo por mensaje.

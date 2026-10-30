@@ -105,7 +105,7 @@ ishop/
 │   ├── widget/                  integración del chat en la tienda
 │   ├── scripts/*.py             utilidades de operación
 │   └── deploy/                  scripts y guía de despliegue
-├── GUIA-PAUL-ISHOP.md           operación del ambiente local
+├── GUIA-AMBIENTE-LOCAL-ISHOP.md           operación del ambiente local
 ├── GUIA-NUBE-ISHOP.md           explicación de la publicación
 ├── MANUAL-TECNICO-ISHOP.md      este documento
 └── MANUAL-USUARIO-ISHOP.md      uso del asistente y del panel de asesores
@@ -237,7 +237,9 @@ tienda, de modo que el conocimiento no se mantiene a mano.
 - **Lotes de 24 documentos**, con `keep_alive: -1` para que Ollama no descargue
   el modelo de memoria entre lotes.
 
-Estado actual verificado: **218 puntos** del catálogo.
+Estado actual verificado: **219 puntos** del catálogo (212 productos + 7
+documentos informativos, contados con las funciones de `index_knowledge.py`
+sobre `knowledge/catalogo-productos.md` y `knowledge/contenido-publico-ishop.md`).
 
 ## Documentos cargados desde el formulario
 
