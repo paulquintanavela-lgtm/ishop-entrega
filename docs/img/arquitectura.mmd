@@ -1,0 +1,26 @@
+flowchart LR
+    cliente(["Cliente<br/>navegador"])
+    asesor(["Asesor humano"])
+    gemini["Google Gemini<br/>único servicio externo"]
+
+    subgraph servidor["Servidor único"]
+        caddy["Caddy<br/>TLS y enrutado"]
+        tienda["Tienda<br/>archivos estáticos"]
+        chatwoot["Chatwoot<br/>chat + bandeja de asesores"]
+        n8n["n8n<br/>orquestador del asistente"]
+        qdrant[("Qdrant<br/>catálogo vectorizado")]
+        ollama["Ollama<br/>embeddings locales"]
+        datos[("PostgreSQL + Redis<br/>datos de Chatwoot")]
+
+        caddy --> tienda
+        caddy --> chatwoot
+        caddy --> n8n
+        chatwoot --- datos
+        n8n --> ollama
+        n8n --> qdrant
+    end
+
+    cliente -- HTTPS --> caddy
+    chatwoot <-->|webhook| n8n
+    n8n -. interpreta y redacta .-> gemini
+    asesor --> chatwoot

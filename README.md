@@ -59,34 +59,11 @@ requiere una decisión comercial.
 El sistema vive en un único servidor y se apoya en un solo servicio externo.
 Cada pieza tiene una responsabilidad clara:
 
-```mermaid
-flowchart LR
-    cliente(["Cliente<br/>navegador"])
-    asesor(["Asesor humano"])
-    gemini["Google Gemini<br/>único servicio externo"]
+![Diagrama de arquitectura de iShop: el cliente llega por HTTPS a Caddy, que reparte el tráfico entre la tienda estática, Chatwoot y n8n dentro de un único servidor; n8n coordina Ollama y Qdrant en ese servidor y llama a Google Gemini como único servicio externo; un asesor humano atiende desde Chatwoot.](docs/img/arquitectura.svg)
 
-    subgraph servidor["Servidor único"]
-        caddy["Caddy<br/>TLS y enrutado"]
-        tienda["Tienda<br/>archivos estáticos"]
-        chatwoot["Chatwoot<br/>chat + bandeja de asesores"]
-        n8n["n8n<br/>orquestador del asistente"]
-        qdrant[("Qdrant<br/>catálogo vectorizado")]
-        ollama["Ollama<br/>embeddings locales"]
-        datos[("PostgreSQL + Redis<br/>datos de Chatwoot")]
-
-        caddy --> tienda
-        caddy --> chatwoot
-        caddy --> n8n
-        chatwoot --- datos
-        n8n --> ollama
-        n8n --> qdrant
-    end
-
-    cliente -- HTTPS --> caddy
-    chatwoot <-->|webhook| n8n
-    n8n -. interpreta y redacta .-> gemini
-    asesor --> chatwoot
-```
+<sub>Fuente editable en [`docs/img/arquitectura.mmd`](docs/img/arquitectura.mmd)
+(sintaxis [Mermaid](https://mermaid.js.org/)); se regenera con
+`npx @mermaid-js/mermaid-cli -i docs/img/arquitectura.mmd -o docs/img/arquitectura.svg -b white`.</sub>
 
 - **Caddy** es la única puerta pública: recibe el tráfico HTTPS y lo reparte
   por dominio hacia la tienda, Chatwoot o n8n.
