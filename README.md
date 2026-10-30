@@ -1,5 +1,9 @@
 # iShop — Asistente virtual con RAG para la atención de clientes
 
+![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
+![Estado](https://img.shields.io/badge/estado-desplegado%20en%20producción-brightgreen)
+
 Proyecto integrador: un asistente conversacional con IA generativa y RAG
 (generación aumentada por recuperación) que responde consultas de productos,
 precios publicados, envíos, garantías y posventa de una tienda como
@@ -11,12 +15,33 @@ El sistema está desplegado y funcionando en un servidor público con HTTPS.
 Se puede probar directamente en la sección
 [Prototipo en línea](#prototipo-en-línea).
 
+## Tabla de contenidos
+
+- [Integrantes y reparto de preguntas del video](#integrantes-y-reparto-de-preguntas-del-video)
+- [Videos de la entrega](#videos-de-la-entrega)
+- [Prototipo en línea](#prototipo-en-línea)
+- [Interfaz de usuario](#interfaz-de-usuario)
+- [El problema y el usuario](#el-problema-y-el-usuario)
+- [Dataset](#dataset)
+- [Arquitectura](#arquitectura)
+- [Cómo funciona](#cómo-funciona)
+- [Estructura del repositorio](#estructura-del-repositorio)
+- [Cómo ejecutar el proyecto](#cómo-ejecutar-el-proyecto)
+- [Documentación](#documentación)
+- [Pruebas y resultados](#pruebas-y-resultados)
+- [Decisiones técnicas principales](#decisiones-técnicas-principales)
+- [Consideraciones éticas](#consideraciones-éticas)
+- [Seguridad y privacidad](#seguridad-y-privacidad)
+- [Licencia](#licencia)
+- [Limitaciones reconocidas](#limitaciones-reconocidas)
+- [Agradecimientos y referencias](#agradecimientos-y-referencias)
+
 ## Integrantes y reparto de preguntas del video
 
-| Orden | Integrante | Preguntas del video de respuestas |
-| --- | --- | --- |
-| 1.º | **Cristian Paúl Quintana Velásquez** | Impares: 1, 3, 5, 7 y 9 |
-| 2.º | **Luis Sebastián Arias Loaiza** | Pares: 2, 4, 6, 8 y 10 |
+| Orden | Integrante | Rol | Preguntas del video de respuestas |
+| --- | --- | --- | --- |
+| 1.º | **Cristian Paúl Quintana Velásquez** | Desarrollo full-stack del proyecto (arquitectura, pipeline RAG, despliegue y documentación), junto con Luis | Impares: 1, 3, 5, 7 y 9 |
+| 2.º | **Luis Sebastián Arias Loaiza** | Desarrollo full-stack del proyecto (arquitectura, pipeline RAG, despliegue y documentación), junto con Cristian | Pares: 2, 4, 6, 8 y 10 |
 
 ## Videos de la entrega
 
@@ -104,6 +129,32 @@ cumple los "requisitos mínimos de la interfaz" de la rúbrica del curso:
 La propuesta no reemplaza al personal: resuelve lo frecuente con información
 autorizada y **deriva a una persona** lo delicado, lo no documentado o lo que
 requiere una decisión comercial.
+
+## Dataset
+
+El "dataset" es el catálogo público de [iShop Ecuador](https://ec.tiendasishop.com/)
+(`products.json` de la tienda) más sus páginas públicas de políticas, no una
+tabla de variables para entrenar un modelo. Resumen:
+
+- **212 productos** y **7 documentos informativos** (envíos, garantía, pagos,
+  devoluciones) → **219 documentos** indexados en la colección vectorial
+  `ishop_rag_v2`.
+- **Fuente y licencia:** información pública de la tienda, sincronizada con
+  `chatbot/scripts/sync_knowledge.py`; se usa solo con fines académicos y de
+  demostración (ver [Licencia](#licencia)). No es un dataset abierto de
+  terceros, por lo que no se redistribuye fuera de este proyecto.
+- **Características principales:** 18 marcas distintas (Apple 66, NCO 50,
+  Belkin 20, Zagg 14, Bose 10, entre otras); precio mínimo por producto entre
+  $9 y $4,349 (mediana $59, muy por debajo de la media de $273.91 — el
+  catálogo está dominado en volumen por accesorios económicos, no por
+  equipos).
+- **Link a los datos:** no son redistribuibles como archivo aparte porque son
+  propiedad de iShop/Apple y terceros; el catálogo vigente siempre es
+  consultable en <https://ec.tiendasishop.com/>, y la copia local usada por
+  el proyecto está en `chatbot/knowledge/catalogo-productos.md`.
+
+Análisis completo (estadísticas, patrones, decisiones de preprocesamiento) en
+[`docs/analisis_datos.md`](docs/analisis_datos.md).
 
 ## Arquitectura
 
@@ -259,6 +310,24 @@ público con HTTPS, ver [`GUIA-NUBE-ISHOP.md`](GUIA-NUBE-ISHOP.md) y
 | n8n como orquestador | Código a medida | La lógica es un diagrama auditable, modificable sin recompilar |
 | Chatwoot para el chat y la bandeja | Widget propio | Traspaso IA ↔ humano probado, en el mismo hilo de conversación |
 
+## Consideraciones éticas
+
+Resumen; el análisis completo (sesgos, equidad, privacidad, transparencia,
+impacto social, responsabilidad, uso dual) está en
+[`docs/consideraciones_eticas.md`](docs/consideraciones_eticas.md).
+
+- **Sesgos:** el catálogo tiene sesgo de dominio (solo Apple y accesorios de
+  una tienda en Ecuador) y de volumen (55% de los productos son Apple o NCO).
+  Se mitiga filtrando por categoría antes de buscar, para que una consulta
+  minoritaria no se diluya entre las marcas mayoritarias.
+- **Limitaciones del sistema:** no conecta con inventario ni pedidos reales;
+  los precios reflejan el momento de la última sincronización, no tiempo
+  real; fuera del catálogo de iShop, el asistente debe reconocer el límite en
+  vez de responder como si lo supiera.
+- **Advertencias sobre uso inadecuado:** el asistente no debe usarse para
+  reembolsos excepcionales, rechazo de garantías ni ninguna decisión
+  comercial — esos casos se derivan siempre a un asesor humano.
+
 ## Seguridad y privacidad
 
 - **Qué sale del servidor:** únicamente el texto del mensaje del cliente y los
@@ -305,6 +374,26 @@ otras marcas representadas).
 - Pendiente: comparación cuantitativa entre alternativas con el mismo set de
   preguntas y análisis formal de sensibilidad de parámetros (ver
   [`RESULTADOS-Y-EVIDENCIAS.md`](RESULTADOS-Y-EVIDENCIAS.md)).
+
+## Agradecimientos y referencias
+
+Un agradecimiento especial a mi familia, mis hijos y mi esposa, y a mi madre,
+por darme la fuerza y el soporte para culminar este proyecto. A la
+universidad, y de manera especial a la Magíster Gladys Villegas, por
+dirigirnos de forma tan acertada durante todo el desarrollo.
+
+- [iShop Ecuador](https://ec.tiendasishop.com/) — catálogo y contenido de
+  referencia usados con fines académicos.
+- [Chatwoot](https://www.chatwoot.com/) — chat y bandeja de atención.
+- [n8n](https://n8n.io/) — orquestador de la lógica del asistente.
+- [Qdrant](https://qdrant.tech/) — base de datos vectorial.
+- [Ollama](https://ollama.com/) y el modelo `nomic-embed-text` — embeddings
+  locales.
+- [Google Gemini](https://ai.google.dev/) — interpretación de intención y
+  redacción de respuestas.
+- [Caddy](https://caddyserver.com/) — proxy inverso y HTTPS automático.
+- Asignatura de Proyecto Integrador, por la guía y retroalimentación durante
+  el desarrollo.
 
 ---
 
