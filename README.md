@@ -37,6 +37,57 @@ En la tienda, el botón de chat abre el asistente. Se puede preguntar por
 productos, presupuestos, envíos o garantía; escribir «quiero hablar con un
 asesor» demuestra el traspaso a una persona.
 
+## Interfaz de usuario
+
+Este proyecto no usa un framework de demo tipo Streamlit/Gradio/Flask: la
+interfaz es un **widget de chat** embebido en la tienda, más un **formulario
+de carga** para mantener la base de conocimiento. Son dos interfaces con
+roles distintos, no una sola:
+
+### 1. Chat del cliente (interfaz principal)
+
+Es la que resuelve el problema del proyecto y la que se muestra en el video
+pitch. Vive en <https://100-52-28-14.sslip.io> y se construye sobre el widget
+de Chatwoot, integrado y configurado para este proyecto
+(`chatbot/widget/`, `chatbot/scripts/setup_chatwoot.py`,
+`chatbot/scripts/install_widget.py`), no escrito desde cero.
+
+- **Input:** texto libre, sin registro. El usuario pregunta como lo haría por
+  WhatsApp.
+- **Procesamiento:** indicador de "escribiendo" mientras el asistente
+  interpreta la consulta, busca evidencia en el catálogo y redacta la
+  respuesta (ver [`docs/arquitectura.md`](docs/arquitectura.md)).
+- **Output:** respuesta en lenguaje natural con el producto, precio y enlace
+  a la ficha; si no hay evidencia suficiente, lo dice explícitamente en vez
+  de inventar.
+- **Manejo de errores:** ante una consulta fuera de catálogo o ambigua, el
+  asistente reconoce el límite y ofrece reformular o pedir un asesor — ver
+  casos de prueba en [`tests/README.md`](tests/README.md).
+- **Qué le falta frente al "Streamlit típico":** no muestra un nivel de
+  confianza/probabilidad, ni tiene una sección "Acerca de" con métricas del
+  sistema dentro de la propia interfaz (esas métricas están documentadas en
+  [`RESULTADOS-Y-EVIDENCIAS.md`](RESULTADOS-Y-EVIDENCIAS.md), fuera de la UI),
+  ni un botón "probar con ejemplo" — la guía de prueba manual con preguntas
+  sugeridas cumple ese rol desde fuera de la interfaz
+  (`chatbot/knowledge/preguntas-prueba.md`).
+
+### 2. Formulario de carga de conocimiento (interfaz secundaria/administrativa)
+
+Disponible en `https://n8n.100-52-28-14.sslip.io/form/cargar-conocimiento`
+(workflow `01-cargar-conocimiento.json`). No prueba el modelo — lo alimenta.
+Se incluye aquí porque, de las dos interfaces, es la que más literalmente
+cumple los "requisitos mínimos de la interfaz" de la rúbrica del curso:
+
+- **Input con validación:** campo "Tema del documento" (obligatorio) y campo
+  "Archivo" (obligatorio, restringido a `.pdf, .txt, .md`).
+- **Procesamiento:** extrae el texto del PDF o del archivo de texto y lo
+  indexa en la base de conocimiento vectorial.
+- **Output:** pantalla de cierre con mensaje dinámico de éxito o error
+  ("Documento agregado" / "No se pudo agregar"), no un mensaje genérico.
+- **Uso:** pensado para que un asesor agregue una política o instructivo
+  nuevo sin tocar el servidor — ver
+  [`MANUAL-USUARIO-ISHOP.md`](MANUAL-USUARIO-ISHOP.md#agregar-documentos-al-conocimiento-del-asistente).
+
 ## El problema y el usuario
 
 - **Problema:** un cliente de la tienda en línea que tiene una duda sobre un
@@ -172,6 +223,13 @@ público con HTTPS, ver [`GUIA-NUBE-ISHOP.md`](GUIA-NUBE-ISHOP.md) y
 | [`GUIA-NUBE-ISHOP.md`](GUIA-NUBE-ISHOP.md) | Publicación en la nube, costos y operación diaria |
 | [`RESULTADOS-Y-EVIDENCIAS.md`](RESULTADOS-Y-EVIDENCIAS.md) | Pruebas, métricas, baseline, errores y limitaciones |
 | [`chatbot/README.md`](chatbot/README.md) | Detalle del componente chatbot |
+| [`docs/planificacion.md`](docs/planificacion.md) | Problema, objetivos, alcance, cronograma, recursos y riesgos |
+| [`docs/analisis_datos.md`](docs/analisis_datos.md) | Descripción del catálogo, estadísticas descriptivas y decisiones de preprocesamiento |
+| [`docs/arquitectura.md`](docs/arquitectura.md) | Tipo de "modelo" (RAG), componentes, diagrama de flujo, interfaz y tecnologías |
+| [`docs/optimizacion.md`](docs/optimizacion.md) | Parámetros del pipeline (equivalente a hiperparámetros), antes/después |
+| [`docs/consideraciones_eticas.md`](docs/consideraciones_eticas.md) | Sesgos, privacidad, transparencia, impacto social y limitaciones |
+| [`docs/manual_usuario.md`](docs/manual_usuario.md) | Guía rápida de uso de las dos interfaces (chat y carga de conocimiento) |
+| [`tests/README.md`](tests/README.md) | Qué cubre la batería de pruebas y cómo ejecutarla |
 
 ## Pruebas y resultados
 
@@ -218,6 +276,20 @@ público con HTTPS, ver [`GUIA-NUBE-ISHOP.md`](GUIA-NUBE-ISHOP.md) y
   umbral, el asistente reconoce el límite y ofrece un asesor. Los casos
   37–40 de la batería de pruebas existen precisamente para detectar
   invenciones.
+
+## Licencia
+
+El código original del proyecto (`chatbot/`, `server.py`, `localize.py` y la
+documentación) se publica bajo licencia [MIT](LICENSE).
+
+**Alcance:** esta licencia cubre el código y la documentación escritos por el
+equipo. La copia estática de la tienda (`products/`, `collections/`, `pages/`,
+`css/`, `js/`, imágenes) es un clon local de
+[iShop Ecuador](https://ec.tiendasishop.com/) con fines **exclusivamente
+académicos y de demostración**; no es contenido original del equipo y no está
+cubierto por la licencia MIT. Los nombres de marca, productos e imágenes que
+aparecen en esa copia pertenecen a sus respectivos dueños (iShop, Apple y
+otras marcas representadas).
 
 ## Limitaciones reconocidas
 

@@ -1,0 +1,12 @@
+# Este proyecto no tiene dependencias de Python de terceros.
+#
+# Todos los scripts (chatbot/scripts/*.py, localize.py, server.py) usan
+# únicamente la biblioteca estándar de Python 3 (urllib, json, pathlib,
+# dataclasses, html.parser, http.server, etc.), sin paquetes externos que
+# instalar.
+#
+# Requisito: Python 3.10 o superior.
+#
+# Los demás componentes del sistema (Chatwoot, n8n, Qdrant, Ollama,
+# PostgreSQL, Redis) se ejecutan como contenedores Docker definidos en
+# chatbot/compose.yml y chatbot/compose.prod.yml — ver GUIA-AMBIENTE-LOCAL-ISHOP.md.
