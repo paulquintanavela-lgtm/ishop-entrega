@@ -377,10 +377,9 @@ otras marcas representadas).
 
 ## Agradecimientos y referencias
 
-Un agradecimiento especial a nuestras familias, hijos, mi esposa y mi madre,
-por darnos el apoyo y la fuerza necesaria para haber culminado este proyecto. A la
-universidad, y de manera especial a la Magíster Gladys Villegas, por
-dirigirnos de forma tan acertada durante todo el desarrollo.
+Un agradecimiento especial a la universidad, y de manera particular a la
+Magíster Gladys Villegas, por dirigirnos de forma tan acertada durante todo
+el desarrollo del proyecto.
 
 Referencias: 
 
