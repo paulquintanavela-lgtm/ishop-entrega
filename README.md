@@ -382,6 +382,8 @@ por darnos el apoyo y la fuerza necesaria para haber culminado este proyecto. A 
 universidad, y de manera especial a la Magíster Gladys Villegas, por
 dirigirnos de forma tan acertada durante todo el desarrollo.
 
+Referencias: 
+
 - [iShop Ecuador](https://ec.tiendasishop.com/) — catálogo y contenido de
   referencia usados con fines académicos.
 - [Chatwoot](https://www.chatwoot.com/) — chat y bandeja de atención.
