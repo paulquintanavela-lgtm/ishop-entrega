@@ -26,7 +26,10 @@ La profesora puede probarlo directamente en la sección
 | Entrega | Duración máxima | Enlace |
 | --- | --- | --- |
 | Video 1 — Presentación del proyecto (pitch con demostración) | 5 minutos | _Pendiente: insertar enlace de YouTube (no listado) o Google Drive_ |
-| Video 2 — Respuestas a las 10 preguntas | 2 minutos por pregunta | _Pendiente: insertar enlace de YouTube (no listado) o Google Drive_ |
+| Video 2 — Respuestas a las 10 preguntas (intercaladas entre los dos integrantes) | 2 minutos por pregunta | <https://drive.google.com/file/d/1YVGQWalicO9Deuld0mXAn657M8PcDgA6/view> |
+
+> Los enlaces de Google Drive deben compartirse con acceso de visualización
+> para cualquier persona con el enlace.
 
 ## Prototipo en línea
 
